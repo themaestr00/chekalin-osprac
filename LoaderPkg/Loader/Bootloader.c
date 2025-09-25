@@ -136,6 +136,7 @@ InitGraphics (
       ModeInfo->PixelFormat,
       ModeInfo->PixelsPerScanLine
       ));
+    FreePool(ModeInfo);
   }
   Status = GraphicsOutput->SetMode (GraphicsOutput, 0);
   if (EFI_ERROR (Status)) {
