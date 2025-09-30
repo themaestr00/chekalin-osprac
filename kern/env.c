@@ -89,6 +89,12 @@ env_init(void) {
     /* Set up envs array */
 
     // LAB 3: Your code here
+    for (int i = 0; i < NENV; i++) {
+        envs[i].env_id = 0;
+        envs[i].env_status = ENV_FREE;
+        envs[i].env_link = (i == NENV - 1) ? NULL : &envs[i + 1];
+    }
+    env_free_list = envs;
 }
 
 /* Allocates and initializes a new environment.
@@ -145,7 +151,8 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     env->env_tf.tf_cs = GD_KT;
 
     // LAB 3: Your code here:
-    // static uintptr_t stack_top = 0x2000000;
+    static uintptr_t stack_top = 0x2000000;
+    env->env_tf.tf_rsp = stack_top - 2 * PAGE_SIZE * (env - envs);
 #else
     env->env_tf.tf_ds = GD_UD | 3;
     env->env_tf.tf_es = GD_UD | 3;
@@ -172,7 +179,7 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
     // LAB 3: Your code here:
 
     /* NOTE: find_function from kdebug.c should be used */
-
+    
     return 0;
 }
 
@@ -219,7 +226,36 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
 static int
 load_icode(struct Env *env, uint8_t *binary, size_t size) {
     // LAB 3: Your code here
+    if (!env || !binary || size < sizeof(struct Elf))
+        return -E_INVALID_EXE;
 
+    struct Elf *elf_header = (struct Elf *)binary;
+    if (elf_header->e_magic != ELF_MAGIC ||
+        elf_header->e_shentsize != sizeof (struct Secthdr) ||
+        elf_header->e_phentsize != sizeof (struct Proghdr) ||
+        elf_header->e_shstrndx >= elf_header->e_shnum) {
+        return -E_INVALID_EXE;
+    }
+    
+    struct Proghdr *ph = (struct Proghdr *)(binary + elf_header->e_phoff);
+    
+    for (int i = 0; i < elf_header->e_phnum; ++i, ++ph) {
+        if (ph->p_type != ELF_PROG_LOAD) {
+            continue;
+        }
+
+        if (ph->p_offset + ph->p_filesz > size || ph->p_filesz > ph->p_memsz) {
+            return -E_INVALID_EXE;
+        }
+
+        uint8_t *dst = (uint8_t *)ph->p_va;
+        uint8_t *src = binary + ph->p_offset;
+
+        memcpy(dst, src, ph->p_filesz);
+        memset(dst + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+    }
+
+    env->env_tf.tf_rip = elf_header->e_entry;
     return 0;
 }
 
@@ -232,6 +268,16 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
 void
 env_create(uint8_t *binary, size_t size, enum EnvType type) {
     // LAB 3: Your code here
+    struct Env *env;
+    int status = env_alloc(&env, 0, type);
+    if (status < 0) {
+        panic("env_alloc: %i", status);
+    }
+    env->binary = binary;
+    status = load_icode(env, binary, size);
+    if (status < 0) {
+        panic("load_icode: %i", status);
+    }
 }
 
 
@@ -349,7 +395,15 @@ env_run(struct Env *env) {
     }
 
     // LAB 3: Your code here
-
+    if (curenv != env) {
+        if (curenv && curenv->env_status == ENV_RUNNING) {
+            curenv->env_status = ENV_RUNNABLE;
+        }
+        curenv = env;
+        curenv->env_status = ENV_RUNNING;
+        ++curenv->env_runs;
+        env_pop_tf(&curenv->env_tf);
+    }
     while (1)
         ;
 }
