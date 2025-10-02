@@ -112,7 +112,7 @@ find_function(const char *const fname) {
     }
     const char *strtab_start = (const char *) uefi_lp->StringTableStart;
     for (struct Elf64_Sym *kern_elf64_sym = (struct Elf64_Sym *)uefi_lp->SymbolTableStart;
-        (EFI_PHYSICAL_ADDRESS) kern_elf64_sym < uefi_lp->SymbolTableEnd; kern_elf64_sym++) {
+        kern_elf64_sym < (struct Elf64_Sym *)uefi_lp->SymbolTableEnd; kern_elf64_sym++) {
         if (strcmp(&strtab_start[kern_elf64_sym->st_name], fname) == 0)
         {
             return (uintptr_t) kern_elf64_sym->st_value;
