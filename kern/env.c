@@ -179,7 +179,61 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
     // LAB 3: Your code here:
 
     /* NOTE: find_function from kdebug.c should be used */
-    
+    if (!env || !binary || size < sizeof(struct Elf)) {
+        return -E_INVALID_EXE;
+    }
+    struct Elf *elf_header = (struct Elf *)binary;
+    if (elf_header->e_magic != ELF_MAGIC ||
+        elf_header->e_shentsize != sizeof (struct Secthdr) ||
+        elf_header->e_shstrndx >= elf_header->e_shnum ||
+        elf_header->e_shoff + elf_header->e_shnum * elf_header->e_shentsize > size
+    ) {
+        return -E_INVALID_EXE;
+    }
+
+    if (elf_header->e_shnum == 0) {
+        return 0;
+    }
+
+    struct Secthdr *sh = (struct Secthdr *)(binary + elf_header->e_shoff);
+
+    for (int i = 0; i < elf_header->e_shnum; ++i) {
+        if (sh[i].sh_type != ELF_SHT_SYMTAB) {
+            continue;
+        }
+        if (sh[i].sh_offset + sh[i].sh_size > size || sh[i].sh_entsize == 0 || sh[i].sh_size % sh[i].sh_entsize != 0) {
+            return -E_INVALID_EXE;
+        }
+        struct Elf64_Sym *symtab = (struct Elf64_Sym *)(binary + sh[i].sh_offset);
+        int symcount = sh[i].sh_size / sh[i].sh_entsize;
+
+        struct Secthdr *str_sh = &sh[sh[i].sh_link];
+        if (str_sh->sh_offset + str_sh->sh_size > size) {
+            return -E_INVALID_EXE;
+        }
+        char *strtab = (char *)(binary + str_sh->sh_offset);
+
+        for (int j = 0; j < symcount; ++j) {
+            unsigned int type = ELF64_ST_TYPE(symtab[j].st_info);
+            unsigned int bind = ELF64_ST_BIND(symtab[j].st_info);
+
+            if (type != STT_OBJECT) continue;
+            if (!(bind == STB_GLOBAL || bind == STB_WEAK)) continue;
+            if (symtab[j].st_value < image_start || symtab[j].st_value >= image_end) {
+                continue;
+            }
+            char *fname = strtab + symtab[j].st_name;
+            if (!fname || !*fname) {
+                continue;
+            }
+            uintptr_t faddr = find_function(fname);
+            if (!faddr) {
+                continue;
+            }
+            uintptr_t *addr_ptr = (uintptr_t *)symtab[j].st_value;
+            *addr_ptr = faddr;
+        }
+    }
     return 0;
 }
 
@@ -233,21 +287,28 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     if (elf_header->e_magic != ELF_MAGIC ||
         elf_header->e_shentsize != sizeof (struct Secthdr) ||
         elf_header->e_phentsize != sizeof (struct Proghdr) ||
-        elf_header->e_shstrndx >= elf_header->e_shnum) {
+        elf_header->e_shstrndx >= elf_header->e_shnum ||
+        elf_header->e_phoff + elf_header->e_phnum * elf_header->e_phentsize > size ||
+        elf_header->e_shoff + elf_header->e_shnum * elf_header->e_shentsize > size
+    ) {
         return -E_INVALID_EXE;
     }
     
     struct Proghdr *ph = (struct Proghdr *)(binary + elf_header->e_phoff);
-    
+    uintptr_t image_start = UINTPTR_MAX, image_end = 0;
     for (int i = 0; i < elf_header->e_phnum; ++i, ++ph) {
         if (ph->p_type != ELF_PROG_LOAD) {
             continue;
         }
-
         if (ph->p_offset + ph->p_filesz > size || ph->p_filesz > ph->p_memsz) {
             return -E_INVALID_EXE;
         }
-
+        if (ph->p_va < image_start) {
+            image_start = ph->p_va;
+        }
+        if (ph->p_va + ph->p_memsz > image_end) {
+            image_end = ph->p_va + ph->p_memsz;
+        }
         uint8_t *dst = (uint8_t *)ph->p_va;
         uint8_t *src = binary + ph->p_offset;
 
@@ -256,6 +317,13 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
 
     env->env_tf.tf_rip = elf_header->e_entry;
+    if (image_start == UINTPTR_MAX || image_end == 0) {
+        return -E_INVALID_EXE;
+    }
+    int res = bind_functions(env, binary, size, image_start, image_end);
+    if (res < 0) {
+        return res;
+    }
     return 0;
 }
 
@@ -306,6 +374,12 @@ env_destroy(struct Env *env) {
      * it traps to the kernel. */
 
     // LAB 3: Your code here
+    if (env == curenv) {
+        env_free(env);
+        sched_yield();
+    } else {
+        env->env_status = ENV_DYING;
+    }
 }
 
 #ifdef CONFIG_KSPACE
@@ -402,8 +476,8 @@ env_run(struct Env *env) {
         curenv = env;
         curenv->env_status = ENV_RUNNING;
         ++curenv->env_runs;
-        env_pop_tf(&curenv->env_tf);
     }
+    env_pop_tf(&curenv->env_tf);
     while (1)
         ;
 }
