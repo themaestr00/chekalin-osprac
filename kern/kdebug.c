@@ -102,12 +102,10 @@ find_function(const char *const fname) {
     uintptr_t offset = 0;
     address_by_fname(&addrs, fname, &offset);
     if (offset) {
-        cprintf("address by fname %s\n", fname);
         return offset;
     }
     naive_address_by_fname(&addrs, fname, &offset);
     if (offset) {
-        cprintf("naive address by fname %s\n", fname);
         return offset;
     }
     const char *strtab_start = (const char *) uefi_lp->StringTableStart;
