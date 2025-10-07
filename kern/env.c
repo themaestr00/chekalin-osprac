@@ -6,6 +6,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/elf.h>
+#include <inc/dwarf.h>
 
 #include <kern/env.h>
 #include <kern/monitor.h>
@@ -230,8 +231,10 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
             if (!faddr) {
                 continue;
             }
-            uintptr_t *addr_ptr = (uintptr_t *)symtab[j].st_value;
-            *addr_ptr = faddr;
+            if (symtab[j].st_size != sizeof(uintptr_t)) {
+                return -E_INVALID_EXE;
+            }
+            put_unaligned(faddr, (uintptr_t *)symtab[j].st_value);
         }
     }
     return 0;
