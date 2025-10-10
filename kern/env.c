@@ -231,10 +231,10 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
             if (!faddr) {
                 continue;
             }
-            if (symtab[j].st_size != sizeof(uintptr_t)) {
+            if (symtab[j].st_size < sizeof(uintptr_t)) {
                 return -E_INVALID_EXE;
             }
-            put_unaligned(faddr, (uintptr_t *)symtab[j].st_value);
+            put_unaligned(faddr, (void(**)(void))symtab[j].st_value);
         }
     }
     return 0;
