@@ -77,7 +77,7 @@ dwarf_read_abbrev_entry(const void *entry, unsigned form, void *buf, int bufsize
                 .mem = entry,
                 .len = length,
         };
-        if (buf) memcpy(buf, &slice, sizeof(struct Slice));
+        if (buf && bufsize >= sizeof(struct Slice)) memcpy(buf, &slice, sizeof(struct Slice));
         entry += length;
         bytes = sizeof(uint16_t) + length;
     } break;
@@ -88,7 +88,7 @@ dwarf_read_abbrev_entry(const void *entry, unsigned form, void *buf, int bufsize
                 .mem = entry,
                 .len = length,
         };
-        if (buf) memcpy(buf, &slice, sizeof(struct Slice));
+        if (buf && bufsize >= sizeof(struct Slice)) memcpy(buf, &slice, sizeof(struct Slice));
         entry += length;
         bytes = sizeof(uint32_t) + length;
     } break;
