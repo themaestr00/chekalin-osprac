@@ -170,6 +170,29 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     return 0;
 }
 
+int check_elf_header(uint8_t *binary, size_t size) {
+    if (!binary || size < sizeof(struct Elf) || (uintptr_t)binary % _Alignof(struct Elf) != 0) {
+        return false;
+    }
+    uint64_t check_mul_buffer, check_add_buffer;
+    struct Elf *elf_header = (struct Elf *)binary;
+    if (elf_header->e_magic != ELF_MAGIC ||
+        elf_header->e_machine != EM_X86_64 ||
+        elf_header->e_shentsize != sizeof (struct Secthdr) ||
+        elf_header->e_phentsize != sizeof (struct Proghdr) ||
+        elf_header->e_shstrndx >= elf_header->e_shnum ||
+        __builtin_mul_overflow(elf_header->e_phnum, elf_header->e_phentsize, &check_mul_buffer) ||
+        __builtin_add_overflow(elf_header->e_phoff, check_mul_buffer, &check_add_buffer) ||
+        check_add_buffer > size ||
+        __builtin_mul_overflow(elf_header->e_shnum, elf_header->e_shentsize, &check_mul_buffer) ||
+        __builtin_add_overflow(elf_header->e_shoff, check_mul_buffer, &check_add_buffer) ||
+        check_add_buffer > size
+    ) {
+        return false;
+    }
+    return true;
+}
+
 /* Pass the original ELF image to binary/size and bind all the symbols within
  * its loaded address space specified by image_start/image_end.
  * Make sure you understand why you need to check that each binding
@@ -180,36 +203,45 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
     // LAB 3: Your code here:
 
     /* NOTE: find_function from kdebug.c should be used */
-    if (!env || !binary || size < sizeof(struct Elf)) {
-        return -E_INVALID_EXE;
-    }
     struct Elf *elf_header = (struct Elf *)binary;
-    if (elf_header->e_magic != ELF_MAGIC ||
-        elf_header->e_shentsize != sizeof (struct Secthdr) ||
-        elf_header->e_shstrndx >= elf_header->e_shnum ||
-        elf_header->e_shoff + elf_header->e_shnum * elf_header->e_shentsize > size
-    ) {
-        return -E_INVALID_EXE;
-    }
 
     if (elf_header->e_shnum == 0) {
         return 0;
     }
 
+    if ((uintptr_t)(binary + elf_header->e_shoff) % _Alignof(struct Secthdr) != 0) {
+        return -E_INVALID_EXE;
+    }
     struct Secthdr *sh = (struct Secthdr *)(binary + elf_header->e_shoff);
-
+    uint64_t check_add_buffer;
     for (int i = 0; i < elf_header->e_shnum; ++i) {
         if (sh[i].sh_type != ELF_SHT_SYMTAB) {
             continue;
         }
-        if (sh[i].sh_offset + sh[i].sh_size > size || sh[i].sh_entsize == 0 || sh[i].sh_size % sh[i].sh_entsize != 0) {
+        if (__builtin_add_overflow(sh[i].sh_offset, sh[i].sh_size, &check_add_buffer) ||
+            check_add_buffer > size || sh[i].sh_entsize == 0 ||
+            sh[i].sh_size % sh[i].sh_entsize != 0) {
+            return -E_INVALID_EXE;
+        }
+
+        if (sh[i].sh_offset % _Alignof(struct Elf64_Sym) != 0) {
             return -E_INVALID_EXE;
         }
         struct Elf64_Sym *symtab = (struct Elf64_Sym *)(binary + sh[i].sh_offset);
         int symcount = sh[i].sh_size / sh[i].sh_entsize;
-
+        
+        if (sh[i].sh_link >= elf_header->e_shnum) {
+            return -E_INVALID_EXE;
+        }
+        if (sh[sh[i].sh_link].sh_type != ELF_SHT_STRTAB) {
+            return -E_INVALID_EXE;
+        }
+        if ((uintptr_t)(binary + sh[sh[i].sh_link].sh_offset) % _Alignof(char) != 0) {
+            return -E_INVALID_EXE;
+        }
         struct Secthdr *str_sh = &sh[sh[i].sh_link];
-        if (str_sh->sh_offset + str_sh->sh_size > size) {
+        if (__builtin_add_overflow(str_sh->sh_offset, str_sh->sh_size, &check_add_buffer) ||
+            check_add_buffer > size) {
             return -E_INVALID_EXE;
         }
         char *strtab = (char *)(binary + str_sh->sh_offset);
@@ -283,40 +315,46 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
 static int
 load_icode(struct Env *env, uint8_t *binary, size_t size) {
     // LAB 3: Your code here
-    if (!env || !binary || size < sizeof(struct Elf))
-        return -E_INVALID_EXE;
-
-    struct Elf *elf_header = (struct Elf *)binary;
-    if (elf_header->e_magic != ELF_MAGIC ||
-        elf_header->e_shentsize != sizeof (struct Secthdr) ||
-        elf_header->e_phentsize != sizeof (struct Proghdr) ||
-        elf_header->e_shstrndx >= elf_header->e_shnum ||
-        elf_header->e_phoff + elf_header->e_phnum * elf_header->e_phentsize > size ||
-        elf_header->e_shoff + elf_header->e_shnum * elf_header->e_shentsize > size
-    ) {
+    if (!check_elf_header(binary, size)) {
         return -E_INVALID_EXE;
     }
-    
+    struct Elf *elf_header = (struct Elf *)binary;
+
+    if ((uintptr_t)(binary + elf_header->e_phoff) % _Alignof(struct Proghdr) != 0) {
+        return -E_INVALID_EXE;
+    }
     struct Proghdr *ph = (struct Proghdr *)(binary + elf_header->e_phoff);
     uintptr_t image_start = UINTPTR_MAX, image_end = 0;
+    uint64_t check_add_buffer;
     for (int i = 0; i < elf_header->e_phnum; ++i, ++ph) {
         if (ph->p_type != ELF_PROG_LOAD) {
             continue;
         }
-        if (ph->p_offset + ph->p_filesz > size || ph->p_filesz > ph->p_memsz) {
+        if (__builtin_add_overflow(ph->p_offset, ph->p_filesz, &check_add_buffer) ||
+            check_add_buffer > size || ph->p_filesz > ph->p_memsz) {
             return -E_INVALID_EXE;
         }
         if (ph->p_va < image_start) {
             image_start = ph->p_va;
         }
-        if (ph->p_va + ph->p_memsz > image_end) {
+        if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
+            check_add_buffer > image_end) {
+            image_end = ph->p_va + ph->p_memsz;
+        }
+        if (ph->p_va < image_start) {
+            image_start = ph->p_va;
+        }
+        if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
+            check_add_buffer > image_end) {
             image_end = ph->p_va + ph->p_memsz;
         }
         uint8_t *dst = (uint8_t *)ph->p_va;
         uint8_t *src = binary + ph->p_offset;
 
         memcpy(dst, src, ph->p_filesz);
-        memset(dst + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+        if (ph->p_memsz > ph->p_filesz) {
+            memset(dst + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+        }
     }
 
     env->env_tf.tf_rip = elf_header->e_entry;
