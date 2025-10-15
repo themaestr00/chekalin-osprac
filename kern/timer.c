@@ -72,6 +72,16 @@ acpi_enable(void) {
         ;
 }
 
+void check_checksum(uint8_t *addr, size_t len) {
+    int32_t sum = 0;
+    for (size_t i = 0; i < len; i++) {
+        sum += addr[i];
+    }
+    if ((sum & 0xff) != 0) {
+        panic("ACPI table checksum error\n");
+    }
+}
+
 static void *
 acpi_find_table(const char *sign) {
     /*
@@ -87,8 +97,51 @@ acpi_find_table(const char *sign) {
      * HINT: You may want to distunguish RSDT/XSDT
      */
     // LAB 5: Your code here:
+    RSDP *rsdp = get_rsdp();
+    physaddr_t rsdt_addr;
+    int num_tables, entry_size;
+    RSDT *rsdt;
+    if (rsdp->Revision < 2) {
+        rsdt_addr = rsdp->RsdtAddress;
+        entry_size = 4;
+    } else {
+        rsdt_addr = rsdp->XsdtAddress;
+        entry_size = 8;
+    }
+    rsdt = (RSDT *)mmio_map_region(rsdt_addr, sizeof(ACPISDTHeader));
+    rsdt = mmio_remap_last_region(rsdt_addr, rsdt, sizeof(ACPISDTHeader), rsdt->h.Length);
+    check_checksum((uint8_t *)rsdt, rsdt->h.Length);
+    num_tables = (rsdt->h.Length - sizeof(ACPISDTHeader)) / entry_size;
 
+    for (int i = 0; i < num_tables; i++) {
+        physaddr_t table_addr;
+        if (entry_size == 4) {
+            table_addr = rsdt->PointerToOtherSDT[i];
+        } else {
+            table_addr = ((uint64_t *)rsdt->PointerToOtherSDT)[i];
+        }
+        ACPISDTHeader *table_hdr = (ACPISDTHeader *)mmio_map_region(table_addr, sizeof(ACPISDTHeader));
+        table_hdr = mmio_remap_last_region(table_addr, table_hdr, sizeof(ACPISDTHeader), table_hdr->Length);
+        check_checksum((uint8_t *)table_hdr, table_hdr->Length);
+        if (strncmp(table_hdr->Signature, sign, 4) == 0) {
+            return (void *)table_hdr;
+        }
+    }
     return NULL;
+}
+
+RSDP *
+get_rsdp(void) {
+    physaddr_t rsdp_addr = uefi_lp->ACPIRoot;
+    if (!rsdp_addr) panic("ACPI RSDP is unavailable\n");
+    RSDP *rsdp = (RSDP *)mmio_map_region(rsdp_addr, sizeof(RSDP));
+    if (rsdp->Revision < 2) {
+        check_checksum((uint8_t *)rsdp, 20);
+    } else {
+        rsdp = mmio_remap_last_region(rsdp_addr, rsdp, sizeof(RSDP), rsdp->Length);
+        check_checksum((uint8_t *)rsdp, rsdp->Length);
+    }
+    return rsdp;
 }
 
 /* Obtain and map FADT ACPI table address. */
@@ -99,7 +152,7 @@ get_fadt(void) {
     // HINT: ACPI table signatures are
     //       not always as their names
 
-    return NULL;
+    return (FADT *)acpi_find_table("FACP");
 }
 
 /* Obtain and map RSDP ACPI table address. */
@@ -108,7 +161,7 @@ get_hpet(void) {
     // LAB 5: Your code here
     // (use acpi_find_table)
 
-    return NULL;
+    return (HPET *)acpi_find_table("HPET");
 }
 
 /* Getting physical HPET timer address from its table. */
