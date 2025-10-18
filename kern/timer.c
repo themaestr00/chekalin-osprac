@@ -262,11 +262,21 @@ hpet_get_main_cnt(void) {
 void
 hpet_enable_interrupts_tim0(void) {
     // LAB 5: Your code here
+    hpetReg->GEN_CONF |= HPET_LEG_RT_CNF;
+    hpetReg->TIM0_CONF = (IRQ_TIMER << 9) | HPET_TN_TYPE_CNF | HPET_TN_VAL_SET_CNF | HPET_TN_INT_ENB_CNF;
+    hpetReg->TIM0_COMP = hpet_get_main_cnt() + Peta / 2 / hpetFemto;
+    hpetReg->TIM0_COMP = Peta / 2 / hpetFemto;
+    pic_irq_unmask(IRQ_TIMER);
 }
 
 void
 hpet_enable_interrupts_tim1(void) {
     // LAB 5: Your code here
+    hpetReg->GEN_CONF |= HPET_LEG_RT_CNF;
+    hpetReg->TIM1_CONF = (IRQ_CLOCK << 9) | HPET_TN_TYPE_CNF | HPET_TN_VAL_SET_CNF | HPET_TN_INT_ENB_CNF;
+    hpetReg->TIM1_COMP = hpet_get_main_cnt() + 3 * Peta / 2 / hpetFemto;
+    hpetReg->TIM1_COMP = 3 * Peta / 2 / hpetFemto;
+    pic_irq_unmask(IRQ_CLOCK);
 }
 
 void
@@ -284,10 +294,18 @@ hpet_handle_interrupts_tim1(void) {
  * about pause instruction. */
 uint64_t
 hpet_cpu_frequency(void) {
-    static uint64_t cpu_freq;
+    static uint64_t cpu_freq = 0;
 
     // LAB 5: Your code here
-
+    if (!cpu_freq) {
+        const uint64_t end_tick = hpetFreq * 25 / 1000;
+        uint64_t now = 0, tsc_start = read_tsc(), start_tick = hpet_get_main_cnt();
+        do {
+            asm("pause");
+            now = hpet_get_main_cnt() - start_tick;
+        } while (now < end_tick);
+        cpu_freq = (read_tsc() - tsc_start) * hpetFreq / now;
+    }
     return cpu_freq;
 }
 
@@ -302,9 +320,27 @@ pmtimer_get_timeval(void) {
  *      can be 24-bit or 32-bit. */
 uint64_t
 pmtimer_cpu_frequency(void) {
-    static uint64_t cpu_freq;
+    static uint64_t cpu_freq = 0;
 
     // LAB 5: Your code here
-
+    if (!cpu_freq) {
+        const uint64_t end_tick = PM_FREQ * 25 / 1000;
+        uint64_t now = 0, start_tick = pmtimer_get_timeval();
+        uint64_t tsc_start = read_tsc(), timer_length = get_fadt()->PMTimerLength;
+        do {
+            asm("pause");
+            uint64_t tick_now = pmtimer_get_timeval();
+            if (start_tick <= tick_now) {
+                now = tick_now - start_tick;
+            } else if (timer_length == 3) {           
+                now = 0x00FFFFFF - start_tick + tick_now; 
+            } else if (timer_length == 4) {                                                    
+                now = 0xFFFFFFFF - start_tick + tick_now;
+            } else {
+                panic("Incorrect register length\n");
+            }
+        } while (now < end_tick);
+        cpu_freq = (read_tsc() - tsc_start) * PM_FREQ / now;
+    }
     return cpu_freq;
 }

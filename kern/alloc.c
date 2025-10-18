@@ -11,6 +11,12 @@ static uint8_t space[SPACE_SIZE];
 static Header base = {.next = (Header *)space, .prev = (Header *)space};
 /* start of free list */
 static Header *freep = NULL;
+struct spinlock alloc_lock = {
+        .locked = 0,
+    #if trace_spinlock
+        .name = "alloc_lock"
+    #endif
+};
 
 static void
 check_list(void) {
@@ -29,6 +35,7 @@ test_alloc(uint8_t nbytes) {
 
     /* Make allocator thread-safe with the help of spin_lock/spin_unlock. */
     // LAB 5: Your code here:
+    spin_lock(&alloc_lock);
 
     size_t nunits = (nbytes + sizeof(Header) - 1) / sizeof(Header) + 1;
 
@@ -44,7 +51,6 @@ test_alloc(uint8_t nbytes) {
     }
 
     check_list();
-
     for (Header *p = freep->next;; p = p->next) {
         /* big enough */
         if (p->size >= nunits) {
@@ -66,6 +72,7 @@ test_alloc(uint8_t nbytes) {
             return NULL;
         }
     }
+    spin_unlock(&alloc_lock);
 }
 
 /* free: put block ap in free list */
@@ -79,6 +86,7 @@ test_free(void *ap) {
     // LAB 5: Your code here
 
     /* freed block at start or end of arena */
+    spin_lock(&alloc_lock);
     Header *p = freep;
     for (; !(bp > p && bp < p->next); p = p->next)
         if (p >= p->next && (bp > p || bp < p->next)) break;
@@ -102,6 +110,7 @@ test_free(void *ap) {
         p->next = bp;
     }
     freep = p;
-
+    
     check_list();
+    spin_unlock(&alloc_lock);
 }
