@@ -208,8 +208,8 @@ timer_start(const char *name) {
         if (timertab[i].timer_name && strcmp(timertab[i].timer_name, name) == 0) {
             timer_started = 1;
             timer_id = i;
-            timer = read_tsc();
             freq = timertab[i].get_cpu_freq();
+            timer = read_tsc();
             return;
         }
     }
