@@ -298,13 +298,12 @@ hpet_cpu_frequency(void) {
 
     // LAB 5: Your code here
     if (!cpu_freq) {
-        const uint64_t end_tick = hpetFreq * 25 / 1000;
-        uint64_t now = 0, tsc_start = read_tsc(), start_tick = hpet_get_main_cnt();
+        uint64_t start_tick = hpet_get_main_cnt(), end_tick = start_tick + hpetFreq * 25 / 1000, now;
+        uint64_t tsc_start = read_tsc();
         do {
             asm("pause");
-            now = hpet_get_main_cnt() - start_tick;
-        } while (now < end_tick);
-        cpu_freq = (read_tsc() - tsc_start) * hpetFreq / now;
+        } while ((now = hpet_get_main_cnt()) < end_tick);
+        cpu_freq = hpetFreq * (read_tsc() - tsc_start) / (now - start_tick);
     }
     return cpu_freq;
 }
