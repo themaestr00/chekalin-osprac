@@ -9,11 +9,13 @@
 #include <inc/dwarf.h>
 
 #include <kern/env.h>
+#include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/monitor.h>
 #include <kern/sched.h>
 #include <kern/kdebug.h>
 #include <kern/macro.h>
+#include <kern/pmap.h>
 #include <kern/traceopt.h>
 
 /* Currently active environment */
