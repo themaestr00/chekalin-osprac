@@ -332,7 +332,6 @@ attach_region(uintptr_t start, uintptr_t end, enum PageState type) {
     end = ROUNDUP(end, CLASS_SIZE(0));
 
     // LAB 6: Your code here
-    struct Page *region;
     while (start < end) {
         for (class = 0; class < MAX_CLASS; ++class) {
             if (start & CLASS_MASK(class)) {
@@ -345,7 +344,7 @@ attach_region(uintptr_t start, uintptr_t end, enum PageState type) {
         while (start + CLASS_SIZE(class) > end) {
             --class;
         }
-        region = page_lookup(NULL, start, class, type, 1);
+        page_lookup(NULL, start, class, type, 1);
         start += CLASS_SIZE(class);
     }
 }
