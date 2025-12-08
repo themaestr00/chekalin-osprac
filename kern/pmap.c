@@ -1546,16 +1546,23 @@ init_address_space(struct AddressSpace *space) {
     /* Allocte page table with alloc_pt into space->cr3
      * (remember to clean flag bits of result with PTE_ADDR) */
     // LAB 8: Your code here
+    pte_t pte = 0;
+    alloc_pt(&pte);
+    pte = PTE_ADDR(pte);
+    space->cr3 = (uintptr_t)pte;
 
     /* Put its kernel virtual address to space->pml4 */
     // LAB 8: Your code here
+    space->pml4 = (pte_t *)KADDR(space->cr3);
 
     /* Allocate virtual tree root node
      * of type INTERMEDIATE_NODE with alloc_rescriptor() of type */
     // LAB 8: Your code here
+    space->root = alloc_descriptor(INTERMEDIATE_NODE);
 
     /* Initialize UVPT */
     // LAB 8: Your code here
+    space->pml4[PML4_INDEX(UVPT)] = space->cr3 | PTE_P | PTE_U;
 
     /* Why this call is required here and what does it do? */
     propagate_one_pml4(space, &kspace);

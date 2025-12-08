@@ -95,10 +95,13 @@ env_init(void) {
      * Don't forget about rounding.
      * kzalloc_region() only works with current_space != NULL */
     // LAB 8: Your code here
+    size_t envs_size = ROUNDUP(sizeof(struct Env) * NENV, PAGE_SIZE);
+    envs = (struct Env *)kzalloc_region(envs_size);
 
     /* Map envs to UENVS read-only,
      * but user-accessible (with PROT_USER_ set) */
     // LAB 8: Your code here
+    int res = map_region(current_space, UENVS, &kspace, PADDR(envs), envs_size, PROT_R | PROT_USER_);
 
     /* Set up envs array */
 
@@ -346,45 +349,48 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     struct Proghdr *ph = (struct Proghdr *)(binary + elf_header->e_phoff);
     uintptr_t image_start = UINTPTR_MAX, image_end = 0;
     uint64_t check_add_buffer;
-    for (int i = 0; i < elf_header->e_phnum; ++i, ++ph) {
-        if (ph->p_type != ELF_PROG_LOAD) {
-            continue;
-        }
-        if (__builtin_add_overflow(ph->p_offset, ph->p_filesz, &check_add_buffer) ||
+    int res;
+    for (int i = 0; i < elf_header->e_phnum; ++i) {
+        if (ph->p_type == ELF_PROG_LOAD) {
+            if (__builtin_add_overflow(ph->p_offset, ph->p_filesz, &check_add_buffer) ||
             check_add_buffer > size || ph->p_filesz > ph->p_memsz) {
-            return -E_INVALID_EXE;
-        }
-        if (ph->p_va < image_start) {
-            image_start = ph->p_va;
-        }
-        if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
+                return -E_INVALID_EXE;
+            }
+            if (ph->p_va < image_start) {
+                image_start = ph->p_va;
+            }
+            if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
             check_add_buffer > image_end) {
-            image_end = ph->p_va + ph->p_memsz;
-        }
-        if (ph->p_va < image_start) {
-            image_start = ph->p_va;
-        }
-        if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
+                image_end = ph->p_va + ph->p_memsz;
+            }
+            if (ph->p_va < image_start) {
+                image_start = ph->p_va;
+            }
+            if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
             check_add_buffer > image_end) {
-            image_end = ph->p_va + ph->p_memsz;
+                image_end = ph->p_va + ph->p_memsz;
+            }
+            if ((res = map_region(&kspace, ph->p_va, NULL, 0, ph->p_memsz, PROT_RWX | ALLOC_ZERO)) < 0) 
+                panic("load_icode - map prog to kspace: %i \n", res);
+            
+            memcpy((void*)(ph->p_va), (void*)(binary + ph->p_offset), (size_t)(ph->p_filesz));
+            uint32_t prog_flags = ph->p_flags; 
+            cprintf("load_icode - prog_flags: 0x%x \n", prog_flags);
+            
+            if ((res = map_region(&env->address_space, ph->p_va, &kspace, ph->p_va, 
+                ph->p_memsz, prog_flags | PROT_USER_)) < 0) 
+                panic("load_icode - map prog to env->address_space: %i \n", res);
         }
-        uint8_t *dst = (uint8_t *)ph->p_va;
-        uint8_t *src = binary + ph->p_offset;
-
-        memcpy(dst, src, ph->p_filesz);
-        if (ph->p_memsz > ph->p_filesz) {
-            memset(dst + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
-        }
+        ++ph;
+        unmap_region(&kspace, ph->p_va, ph->p_memsz);
     }
-
+    env->binary = binary;
     env->env_tf.tf_rip = elf_header->e_entry;
     if (image_start == UINTPTR_MAX || image_end == 0) {
         return -E_INVALID_EXE;
     }
-    int res = bind_functions(env, binary, size, image_start, image_end);
-    if (res < 0) {
-        return res;
-    }
+    if ((res = map_region(&env->address_space, USER_STACK_TOP - USER_STACK_SIZE, NULL, 0, USER_STACK_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO)) < 0) 
+        panic("load_icode: %i \n", res);
     // LAB 8: Your code here
     return 0;
 }
@@ -404,6 +410,7 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
         panic("env_alloc: %i", status);
     }
     env->binary = binary;
+    env->env_type = type;
     status = load_icode(env, binary, size);
     if (status < 0) {
         panic("load_icode: %i", status);
@@ -548,6 +555,7 @@ env_run(struct Env *env) {
         curenv = env;
         curenv->env_status = ENV_RUNNING;
         ++curenv->env_runs;
+        switch_address_space(&curenv->address_space);
     }
     env_pop_tf(&curenv->env_tf);
     // LAB 8: Your code here
