@@ -20,9 +20,19 @@
 static int
 sys_cputs(const char *s, size_t len) {
     // LAB 8: Your code here
+    // cprintf("sys_cputs called with len %d\n", len);
 
     /* Check that the user has permission to read memory [s, s+len).
      * Destroy the environment if not. */
+    user_mem_assert(curenv, s, len, PROT_R | PROT_USER_);
+
+    #ifdef SANITIZE_SHADOW_BASE
+        platform_asan_unpoison((void *) s, len);
+    #endif
+    cprintf("%.*s", (int)len, s);
+    #ifdef SANITIZE_SHADOW_BASE
+        platform_asan_poison((void *) s, len);
+    #endif
 
     return 0;
 }
@@ -33,7 +43,7 @@ static int
 sys_cgetc(void) {
     // LAB 8: Your code here
 
-    return 0;
+    return cons_getc();
 }
 
 /* Returns the current environment's envid. */
@@ -41,7 +51,7 @@ static envid_t
 sys_getenvid(void) {
     // LAB 8: Your code here
 
-    return 0;
+    return curenv->env_id;
 }
 
 /* Destroy a given environment (possibly the currently running environment).
@@ -51,9 +61,12 @@ sys_getenvid(void) {
  *      or the caller doesn't have permission to change envid. */
 static int
 sys_env_destroy(envid_t envid) {
-    // LAB 8: Your code here.
-
-#if 0 /* TIP: Use this snippet to log required for passing grade tests info */
+    // LAB 8: Your code here
+    struct Env *env;
+    int res = envid2env(envid, &env, 0);
+    if (res < 0 || env == NULL)
+        return -E_BAD_ENV;
+#if 1 /* TIP: Use this snippet to log required for passing grade tests info */
     if (trace_envs) {
         cprintf(env == curenv ?
                         "[%08x] exiting gracefully\n" :
@@ -61,7 +74,7 @@ sys_env_destroy(envid_t envid) {
                 curenv->env_id, env->env_id);
     }
 #endif
-
+    env_destroy(env);
     return 0;
 }
 
@@ -72,6 +85,15 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
      * Return any appropriate return value. */
 
     // LAB 8: Your code here
-
+    switch (syscallno) {
+        case SYS_cputs:
+            return sys_cputs((const char *)a1, (size_t)a2);
+        case SYS_cgetc:
+            return sys_cgetc();
+        case SYS_getenvid:
+            return sys_getenvid();
+        case SYS_env_destroy:
+            return sys_env_destroy((envid_t)a1);
+    }
     return -E_NO_SYS;
 }

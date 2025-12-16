@@ -97,19 +97,24 @@ env_init(void) {
     // LAB 8: Your code here
     size_t envs_size = ROUNDUP(sizeof(struct Env) * NENV, PAGE_SIZE);
     envs = (struct Env *)kzalloc_region(envs_size);
+    memset(envs, 0, sizeof(*envs) * NENV);
 
     /* Map envs to UENVS read-only,
      * but user-accessible (with PROT_USER_ set) */
     // LAB 8: Your code here
-    int res = map_region(current_space, UENVS, &kspace, PADDR(envs), envs_size, PROT_R | PROT_USER_);
+    map_region(current_space, UENVS, &kspace, (uintptr_t)envs, envs_size, PROT_R | PROT_USER_);
 
     /* Set up envs array */
 
     // LAB 3: Your code here
     for (int i = 0; i < NENV; i++) {
-        envs[i].env_id = 0;
         envs[i].env_status = ENV_FREE;
-        envs[i].env_link = (i == NENV - 1) ? NULL : &envs[i + 1];
+        envs[i].env_link = (i < NENV - 1 ? &envs[i + 1] : NULL);
+        envs[i].env_type = ENV_TYPE_KERNEL;
+        envs[i].env_id = 0;
+        envs[i].env_parent_id = 0;
+        envs[i].binary = NULL;
+        memset(&envs[i].env_tf, 0, sizeof(envs[i].env_tf));
     }
     env_free_list = envs;
 }
@@ -338,6 +343,7 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
 static int
 load_icode(struct Env *env, uint8_t *binary, size_t size) {
     // LAB 3: Your code here
+    // LAB 8: Your code here
     if (!check_elf_header(binary, size)) {
         return -E_INVALID_EXE;
     }
@@ -391,7 +397,6 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
     if ((res = map_region(&env->address_space, USER_STACK_TOP - USER_STACK_SIZE, NULL, 0, USER_STACK_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO)) < 0) 
         panic("load_icode: %i \n", res);
-    // LAB 8: Your code here
     return 0;
 }
 
@@ -453,8 +458,12 @@ env_destroy(struct Env *env) {
     /* If env is currently running on other CPUs, we change its state to
      * ENV_DYING. A zombie environment will be freed the next time
      * it traps to the kernel. */
-
+    /* Reset in_page_fault flags in case *current* environment
+     * is getting destroyed after performing invalid memory access. */
     // LAB 3: Your code here
+    // LAB 8: Your code here
+    
+    in_page_fault = false;
     if (env == curenv) {
         env_free(env);
         sched_yield();
@@ -462,9 +471,6 @@ env_destroy(struct Env *env) {
         env->env_status = ENV_DYING;
     }
 
-    /* Reset in_page_fault flags in case *current* environment
-     * is getting destroyed after performing invalid memory access. */
-    // LAB 8: Your code here
 }
 
 #ifdef CONFIG_KSPACE
@@ -548,6 +554,7 @@ env_run(struct Env *env) {
     }
 
     // LAB 3: Your code here
+    // LAB 8: Your code here
     if (curenv != env) {
         if (curenv && curenv->env_status == ENV_RUNNING) {
             curenv->env_status = ENV_RUNNABLE;
@@ -558,7 +565,6 @@ env_run(struct Env *env) {
         switch_address_space(&curenv->address_space);
     }
     env_pop_tf(&curenv->env_tf);
-    // LAB 8: Your code here
 
     while (1)
         ;

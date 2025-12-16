@@ -439,7 +439,8 @@ attach_region(uintptr_t start, uintptr_t end, enum PageState type) {
     end = ROUNDUP(end, CLASS_SIZE(0));
 
     // LAB 6: Your code here
-    struct Page *region;
+    struct Page *region = NULL;
+    (void)region;
     while (start < end) {
         for (class = 0; class < MAX_CLASS; ++class) {
             if (start & CLASS_MASK(class)) {
@@ -1981,7 +1982,22 @@ static uintptr_t user_mem_check_addr;
 int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm) {
     // LAB 8: Your code here
-    return -E_FAULT;
+    const void *current = (void *)ROUNDDOWN(va, PAGE_SIZE);
+    const void *end = va + len;
+    struct Page *user_root = env->address_space.root;
+    while (current < end) {
+        struct Page *page = page_lookup_virtual(user_root, (uintptr_t)current, 0, 0);
+        if (!page->phy || (page->state & PAGE_PROT(perm)) != PAGE_PROT(perm)) {
+            user_mem_check_addr = (uintptr_t)(MAX(va, current));
+            return -E_FAULT;
+        }
+        current += PAGE_SIZE;
+    }
+    if ((uintptr_t)end > MAX_USER_READABLE) {
+        user_mem_check_addr = MAX(MAX_USER_READABLE, (uintptr_t)current);
+        return -E_FAULT;
+    }
+    return 0;
 }
 
 void
