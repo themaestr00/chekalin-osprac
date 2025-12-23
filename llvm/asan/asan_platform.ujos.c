@@ -68,12 +68,24 @@ platform_abort() {
 static bool
 asan_shadow_allocator(struct UTrapframe *utf) {
     // LAB 9: Your code here
-    if (SHADOW_FOR_ADDRESS(utf->utf_fault_va) >= asan_internal_shadow_start && 
-        SHADOW_FOR_ADDRESS(utf->utf_fault_va) <= asan_internal_shadow_end && !(utf->utf_fault_va >= (uint64_t)asan_internal_shadow_start && 
-        utf->utf_fault_va <= (uint64_t)asan_internal_shadow_end)) {
-        return sys_alloc_region(sys_getenvid(), SHADOW_FOR_ADDRESS(utf->utf_fault_va), PAGE_SIZE, ALLOC_ONE | PROT_RW) < 0 ? 0 : 1;
+    if (utf->utf_fault_va >= (uintptr_t)asan_internal_shadow_start && 
+        utf->utf_fault_va < (uintptr_t)asan_internal_shadow_end) {
+        
+        void *addr = (void*)ROUNDDOWN(utf->utf_fault_va, PAGE_SIZE);
+        
+        if (utf->utf_err & FEC_P) {
+            // COW fault - copy page
+            if (sys_alloc_region(0, UTEMP, PAGE_SIZE, PROT_RW) < 0) return 0;
+            memcpy(UTEMP, addr, PAGE_SIZE);
+            if (sys_map_region(0, UTEMP, 0, addr, PAGE_SIZE, PROT_RW) < 0) return 0;
+            sys_unmap_region(0, UTEMP, PAGE_SIZE);
+        } else {
+            // Not present - allocate new
+            if (sys_alloc_region(0, addr, PAGE_SIZE, ALLOC_ONE | PROT_RW) < 0) return 0;
+        }
+        return 1;
     }
-    return 1;
+    return 0;
 }
 #endif
 
