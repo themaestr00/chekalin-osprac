@@ -60,6 +60,14 @@ alloc_block(void) {
      * super->s_nblocks blocks in the disk altogether. */
 
     // LAB 10: Your code here
+    for (blockno_t blockno = 1; blockno < super->s_nblocks; blockno++) {
+        if (block_is_free(blockno)) {
+            if (blockno == 0) panic("attempt to occupy zero block");
+            CLRBIT(bitmap, blockno);
+            flush_block(&bitmap[blockno / 32]);
+            return blockno;
+        }
+    }
 
     return 0;
 }
@@ -125,6 +133,21 @@ file_block_walk(struct File *f, blockno_t filebno, blockno_t **ppdiskbno, bool a
     // LAB 10: Your code here
 
     *ppdiskbno = NULL;
+    if (filebno < NDIRECT) {
+        *ppdiskbno = f->f_direct + filebno;
+    } else if (filebno >= NDIRECT + NINDIRECT) {
+        return -E_INVAL;
+    } else {
+        filebno -= NDIRECT;
+        if (!f->f_indirect) {
+            if (!alloc)
+                return -E_NOT_FOUND;
+            if (!(f->f_indirect = alloc_block()))
+                return -E_NO_DISK;
+            memset(diskaddr(f->f_indirect), 0, BLKSIZE);
+        }
+        *ppdiskbno = (blockno_t *)diskaddr(f->f_indirect) + filebno;
+    }
 
     return 0;
 }
@@ -142,6 +165,15 @@ file_get_block(struct File *f, blockno_t filebno, char **blk) {
     // LAB 10: Your code here
 
     *blk = NULL;
+    blockno_t *block = NULL;
+    int res;
+    if ((res = file_block_walk(f, filebno, &block, true)) < 0)
+        return res;
+
+    if (!*block && !(*block = alloc_block()))
+        return -E_NO_DISK;
+
+    *blk = (char *)diskaddr(*block);
 
     return 0;
 }

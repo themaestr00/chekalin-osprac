@@ -292,6 +292,14 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
 static int
 sys_map_physical_region(uintptr_t pa, envid_t envid, uintptr_t va, size_t size, int perm) {
     // LAB 10: Your code here
+    struct Env* env;
+    if (envid2env(envid, &env, 1) || env->env_type != ENV_TYPE_FS)
+        return -E_BAD_ENV;
+    if (PAGE_OFFSET(va) || va >= MAX_USER_ADDRESS || PAGE_OFFSET(pa) || PAGE_OFFSET(size) 
+        || perm & (PROT_SHARE | PROT_COMBINE | PROT_LAZY) || size > MAX_USER_ADDRESS || MAX_USER_ADDRESS - va < size)
+        return -E_INVAL;
+
+    return map_physical_region(&env->address_space, va, pa, size, perm | PROT_USER_ | MAP_USER_MMIO);
 
     return 0;
 }
@@ -416,8 +424,11 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
-
-    return 0;
+    if (addr2 < MAX_USER_ADDRESS) {
+        return region_maxref(&curenv->address_space, addr, size) - region_maxref(&curenv->address_space, addr2, size2);
+    } else {
+        return region_maxref(&curenv->address_space, addr, size);
+    }
 }
 
 /* Dispatches to the correct kernel function, passing the arguments. */
@@ -457,6 +468,10 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
             return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
         case SYS_ipc_recv:
             return sys_ipc_recv(a1, a2);
+        case SYS_map_physical_region:
+            return sys_map_physical_region(a1, (envid_t)a2, a3, (size_t)a4, (int)a5);
+        case SYS_region_refs:
+            return sys_region_refs(a1, (size_t)a2, a3, (size_t)a4);
     }
 
     return -E_NO_SYS;

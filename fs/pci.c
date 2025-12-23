@@ -45,7 +45,8 @@ pci_iop_read_dword(struct PciDevice *pcid, uint8_t reg) {
      * TIP: Select address using pci_iop_select_address()
      *      and read from PCI_PORT_DATA. */
     // LAB 10: Your code here
-    return 0;
+    pci_iop_select_address(pcid, reg);
+    return inl(PCI_PORT_DATA);
 }
 
 static inline void
@@ -96,7 +97,7 @@ pci_ecam_read_dword(struct PciDevice *pcid, uint8_t reg) {
      * TIP: Use pci_ecam_addr(). Don't forget to align
      * reg to 4 byte granularity */
     // LAB 10: Your code here
-    return 0;
+    return *(volatile uint32_t *)pci_ecam_addr(pcid, reg & 0xffc);
 }
 
 static inline uint16_t

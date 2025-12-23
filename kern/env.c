@@ -427,6 +427,8 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
 void
 env_create(uint8_t *binary, size_t size, enum EnvType type) {
     // LAB 3: Your code here
+    // LAB 8: Your code here
+    // LAB 10: Your code here
     struct Env *env;
     int status = env_alloc(&env, 0, type);
     if (status < 0) {
@@ -438,8 +440,9 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
     if (status < 0) {
         panic("load_icode: %i", status);
     }
-    // LAB 8: Your code here
-    // LAB 10: Your code here
+    if (type == ENV_TYPE_FS) {
+        env->env_tf.tf_rflags |= FL_IOPL_3;
+    }
 }
 
 
