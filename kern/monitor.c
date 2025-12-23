@@ -15,6 +15,7 @@
 #include <kern/tsc.h>
 #include <kern/timer.h>
 #include <kern/env.h>
+#include <kern/pmap.h>
 #include <kern/trap.h>
 
 #define WHITESPACE "\t\r\n "
@@ -29,6 +30,9 @@ int mon_dumpcmos(int argc, char **argv, struct Trapframe *tf);
 int mon_start(int argc, char **argv, struct Trapframe *tf);
 int mon_stop(int argc, char **argv, struct Trapframe *tf);
 int mon_frequency(int argc, char **argv, struct Trapframe *tf);
+int mon_memory(int argc, char **argv, struct Trapframe *tf);
+int mon_pagetable(int argc, char **argv, struct Trapframe *tf);
+int mon_virt(int argc, char **argv, struct Trapframe *tf);
 
 struct Command {
     const char *name;
@@ -46,6 +50,9 @@ static struct Command commands[] = {
         {"timer_start", "Start timer", mon_start},
         {"timer_stop", "Stop timer", mon_stop},
         {"timer_freq", "Get timer frequency", mon_frequency},
+        {"memory", "Display allocated memory pages", mon_memory},
+        {"pagetable", "Display current page table", mon_pagetable},
+        {"virt", "Display virtual memory tree", mon_virt},
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
@@ -78,6 +85,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
     uint64_t *rbp = (uint64_t *)read_rbp(), rip;
     cprintf("Stack backtrace:\n");
     while (rbp) {
+        if ((uintptr_t)rbp < MAX_USER_ADDRESS) break;
         rip = *(rbp + 1);
         cprintf("  rbp %016lx  rip %016lx\n", (uint64_t)rbp, (uint64_t)rip);
         struct Ripdebuginfo info;
@@ -107,16 +115,55 @@ mon_hello(int argc, char **argv, struct Trapframe *tf) {
 
 int
 mon_start(int argc, char **argv, struct Trapframe *tf) {
+    if (argc != 2) {
+        cprintf("Usage: timer_start <timer_name>\n");
+        return 0;
+    }
+    timer_start(argv[1]);
     return 0;
 }
 
 int
 mon_stop(int argc, char **argv, struct Trapframe *tf) {
+    if (argc != 1) {
+        cprintf("Usage: timer_stop\n");
+        return 0;
+    }
+    timer_stop();
     return 0;
 }
 
 int
 mon_frequency(int argc, char **argv, struct Trapframe *tf) {
+    if (argc != 2) {
+        cprintf("Usage: timer_freq <timer_name>\n");
+        return 0;
+    }
+    timer_cpu_frequency(argv[1]);
+    return 0;
+}
+
+// LAB 6: Your code here
+/* Implement memory (mon_memory) commands. */
+int
+mon_memory(int argc, char **argv, struct Trapframe *tf) {
+    dump_memory_lists();
+    return 0;
+}
+
+/* Implement mon_pagetable() and mon_virt()
+ * (using dump_virtual_tree(), dump_page_table())*/
+int
+mon_pagetable(int argc, char **argv, struct Trapframe *tf) {
+    // LAB 7: Your code here
+    dump_page_table(kspace.pml4);
+    return 0;
+}
+
+int
+mon_virt(int argc, char **argv, struct Trapframe *tf) {
+    // LAB 7: Your code here
+    dump_virtual_tree(kspace.root, MAX_CLASS);
     return 0;
 }
 

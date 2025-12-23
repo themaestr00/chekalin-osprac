@@ -46,6 +46,17 @@ enum EnvType {
     ENV_TYPE_USER,
 };
 
+struct List {
+    struct List *prev, *next;
+};
+
+struct AddressSpace {
+    pml4e_t *pml4;     /* Virtual address of pml4 */
+    uintptr_t cr3;     /* Physical address of pml4 */
+    struct Page *root; /* root node of address space tree */
+};
+
+
 struct Env {
     struct Trapframe env_tf; /* Saved registers */
     struct Env *env_link;    /* Next free Env */
@@ -56,6 +67,20 @@ struct Env {
     uint32_t env_runs;       /* Number of times environment has run */
 
     uint8_t *binary; /* Pointer to process ELF image in kernel memory */
+
+    /* Address space */
+    struct AddressSpace address_space;
+
+    /* Exception handling */
+    void *env_pgfault_upcall; /* Page fault upcall entry point */
+
+    /* LAB 9 IPC */
+    bool env_ipc_recving;    /* Env is blocked receiving */
+    uintptr_t env_ipc_dstva; /* VA at which to map received page */
+    size_t env_ipc_maxsz;    /* maximal size of received region */
+    uint32_t env_ipc_value;  /* Data value sent to us */
+    envid_t env_ipc_from;    /* envid of the sender */
+    int env_ipc_perm;        /* Perm of page mapping received */
 };
 
 #endif /* !JOS_INC_ENV_H */
