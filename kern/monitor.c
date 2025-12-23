@@ -85,6 +85,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
     uint64_t *rbp = (uint64_t *)read_rbp(), rip;
     cprintf("Stack backtrace:\n");
     while (rbp) {
+        if ((uintptr_t)rbp < MAX_USER_ADDRESS) break;
         rip = *(rbp + 1);
         cprintf("  rbp %016lx  rip %016lx\n", (uint64_t)rbp, (uint64_t)rip);
         struct Ripdebuginfo info;

@@ -683,7 +683,7 @@ dump_page_table_process(pte_t* pml4, int level)
             if (pml4[now] & PTE_PS && (pte_size == 1 * GB || pte_size == 2 * MB)) {
                 dump_entry(pml4[now], pte_size, 1);
             } else {
-                if (level == 0) {
+                if (level == 1) {
                     dump_entry(pml4[now], pte_size, 1);
                 } else {
                     dump_entry(pml4[now], pte_size, 0);

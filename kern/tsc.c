@@ -202,6 +202,10 @@ void
 timer_start(const char *name) {
     for (int i = 0; i < MAX_TIMERS; ++i) {
         if (timertab[i].timer_name && strcmp(timertab[i].timer_name, name) == 0) {
+            if (!timertab[i].get_cpu_freq) {
+                print_timer_error();
+                return;
+            }
             timer_started = 1;
             timer_id = i;
             freq = timertab[i].get_cpu_freq();
@@ -230,7 +234,11 @@ void
 timer_cpu_frequency(const char *name) {
     for (int i = 0; i < MAX_TIMERS; ++i) {
         if (timertab[i].timer_name && strcmp(timertab[i].timer_name, name) == 0) {
-            cprintf("%lu\n", timertab[i].get_cpu_freq());
+            if (timertab[i].get_cpu_freq) {
+                cprintf("%lu\n", timertab[i].get_cpu_freq());
+            } else {
+                print_timer_error();
+            }
             return;
         }
     }
