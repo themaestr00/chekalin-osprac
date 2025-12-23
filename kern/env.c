@@ -470,9 +470,11 @@ env_destroy(struct Env *env) {
     // LAB 8: Your code here
     
     in_page_fault = false;
-    if (env == curenv) {
+    if (env == curenv || env->env_status != ENV_RUNNING) {
         env_free(env);
-        sched_yield();
+        if (env == curenv) {
+            sched_yield();
+        }
     } else {
         env->env_status = ENV_DYING;
     }
