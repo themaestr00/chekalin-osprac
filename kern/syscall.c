@@ -26,13 +26,13 @@ sys_cputs(const char *s, size_t len) {
      * Destroy the environment if not. */
     user_mem_assert(curenv, s, len, PROT_R | PROT_USER_);
 
-    #ifdef SANITIZE_SHADOW_BASE
-        platform_asan_unpoison((void *) s, len);
-    #endif
-    cprintf("%.*s", (int)len, s);
-    #ifdef SANITIZE_SHADOW_BASE
-        platform_asan_poison((void *) s, len);
-    #endif
+    char buf[256];
+    size_t i;
+    for (i = 0; i < len; i += sizeof(buf)) {
+        size_t chunk = MIN(len - i, sizeof(buf));
+        nosan_memcpy(buf, (void *)(s + i), chunk);
+        cprintf("%.*s", (int)chunk, buf);
+    }
 
     return 0;
 }
