@@ -62,7 +62,37 @@ foreach_shared_region(int (*fun)(void *start, void *end, void *arg), void *arg) 
     // LAB 11: Your code here:
 
     int res = 0;
-    (void)fun, (void)arg;
+    for (uintptr_t i = 0; i < 1; ++i) {
+        if (!(uvpml4[i] & PTE_P)) continue;
+        for (uintptr_t j = (i << PML4_ENTRY_SHIFT); j < (PDP_ENTRY_COUNT + (i << PML4_ENTRY_SHIFT)); ++j) {
+            if (!(uvpdp[j] & PTE_P)) continue;
+            if ((uvpdp[j] & PTE_PS) && (uvpdp[j] & PTE_SHARE)) {
+                if ((j << PDP_SHIFT) < MAX_LOW_ADDR_KERN_SIZE) continue;
+                res = fun((void *)(j << PDP_SHIFT), (void *)((j + 1) << PDP_SHIFT), arg);
+                if (res < 0) return res;
+            }
+            if (!(uvpdp[j] & PTE_PS)) {
+                for (uintptr_t k = (j << PDP_ENTRY_SHIFT); k < (PD_ENTRY_COUNT + (j << PDP_ENTRY_SHIFT)); ++k) {
+                    if (!(uvpd[k] & PTE_P)) continue;
+                    if ((uvpd[k] & PTE_PS) && (uvpd[k] & PTE_SHARE)) {
+                        if ((k << PD_SHIFT) < MAX_LOW_ADDR_KERN_SIZE) continue;
+                        res = fun((void *)(k << PD_SHIFT), (void *)((k + 1) << PD_SHIFT), arg);
+                        if (res < 0) return res;
+                    }
+                    if (!(uvpd[k] & PTE_PS)) {
+                        for (uintptr_t h = (k << PD_ENTRY_SHIFT); h < (PT_ENTRY_COUNT + (k << PD_ENTRY_SHIFT)); ++h) {
+                            if ((h << PT_SHIFT) >= USER_STACK_TOP - USER_STACK_SIZE) break;
+                            if ((h << PT_SHIFT) < MAX_LOW_ADDR_KERN_SIZE) continue;
+                            if (uvpt[h] & PTE_P && uvpt[h] & PTE_SHARE) {
+                                res = fun((void *)(h << PT_SHIFT), (void *)((h + 1) << PT_SHIFT), arg);
+                                if (res < 0) return res;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     return res;
 }
