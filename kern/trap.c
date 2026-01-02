@@ -315,9 +315,10 @@ trap_dispatch(struct Trapframe *tf) {
     case IRQ_OFFSET + IRQ_TIMER:
         // LAB 4: Your code here
         // LAB 5: Your code here
-        timer_for_schedule->handle_interrupts();
-        sched_yield();
         // LAB 12: Your code here
+        timer_for_schedule->handle_interrupts();
+        vsys[VSYS_gettime] = gettime();
+        sched_yield();
         return;
         // LAB 11: Your code here
         /* Handle keyboard (IRQ_KBD + kbd_intr()) and
