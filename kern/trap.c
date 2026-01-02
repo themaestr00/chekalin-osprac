@@ -1,7 +1,9 @@
+#include "trap.h"
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
 #include <inc/string.h>
+#include <inc/vsyscall.h>
 
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -13,6 +15,7 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #include <kern/timer.h>
+#include <kern/vsyscall.h>
 #include <kern/traceopt.h>
 
 static struct Taskstate ts;
@@ -171,6 +174,9 @@ trap_init(void) {
      * code execution */
     idt[T_PGFLT].gd_ist = 1;
 
+    // LAB 11: Your code here
+    idt[IRQ_OFFSET + IRQ_KBD] = GATE(0, GD_KT, irq_kbd_thdlr, 0);
+    idt[IRQ_OFFSET + IRQ_SERIAL] = GATE(0, GD_KT, irq_serial_thdlr, 0);
 
     /* Per-CPU setup */
     trap_init_percpu();
@@ -309,8 +315,21 @@ trap_dispatch(struct Trapframe *tf) {
     case IRQ_OFFSET + IRQ_TIMER:
         // LAB 4: Your code here
         // LAB 5: Your code here
+        // LAB 12: Your code here
         timer_for_schedule->handle_interrupts();
+        vsys[VSYS_gettime] = gettime();
         sched_yield();
+        return;
+        // LAB 11: Your code here
+        /* Handle keyboard (IRQ_KBD + kbd_intr()) and
+         * serial (IRQ_SERIAL + serial_intr()) interrupts. */
+    case IRQ_OFFSET + IRQ_SERIAL:
+        serial_intr();
+        pic_send_eoi(IRQ_SERIAL);
+        return;
+    case IRQ_OFFSET + IRQ_KBD:
+        kbd_intr();
+        pic_send_eoi(IRQ_KBD);
         return;
     default:
         print_trapframe(tf);

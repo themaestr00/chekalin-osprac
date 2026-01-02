@@ -100,6 +100,15 @@ sys_map_region(envid_t srcenv, void *srcva, envid_t dstenv, void *dstva, size_t 
 }
 
 int
+sys_map_physical_region(uintptr_t pa, envid_t dstenv, void *dstva, size_t size, int perm) {
+    int res = syscall(SYS_map_physical_region, 1, pa, dstenv, (uintptr_t)dstva, size, perm, 0);
+#ifdef SANITIZE_USER_SHADOW_BASE
+    platform_asan_unpoison(dstva, size);
+#endif
+    return res;
+}
+
+int
 sys_unmap_region(envid_t envid, void *va, size_t size) {
     int res = syscall(SYS_unmap_region, 1, envid, (uintptr_t)va, size, 0, 0, 0);
 #ifdef SANITIZE_USER_SHADOW_BASE
@@ -119,6 +128,11 @@ sys_env_set_status(envid_t envid, int status) {
 }
 
 int
+sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
+    return syscall(SYS_env_set_trapframe, 1, envid, (uintptr_t)tf, 0, 0, 0, 0);
+}
+
+int
 sys_env_set_pgfault_upcall(envid_t envid, void *upcall) {
     return syscall(SYS_env_set_pgfault_upcall, 1, envid, (uintptr_t)upcall, 0, 0, 0, 0);
 }
@@ -135,4 +149,9 @@ sys_ipc_recv(void *dstva, size_t size) {
     if (!res) platform_asan_unpoison(dstva, thisenv->env_ipc_maxsz);
 #endif
     return res;
+}
+
+int
+sys_gettime(void) {
+    return syscall(SYS_gettime, 0, 0, 0, 0, 0, 0, 0);
 }

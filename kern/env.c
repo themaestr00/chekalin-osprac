@@ -7,16 +7,18 @@
 #include <inc/assert.h>
 #include <inc/elf.h>
 #include <inc/dwarf.h>
-
+#include <inc/vsyscall.h>
 #include <kern/env.h>
-#include <kern/pmap.h>
-#include <kern/trap.h>
-#include <kern/monitor.h>
-#include <kern/sched.h>
 #include <kern/kdebug.h>
 #include <kern/macro.h>
+#include <kern/monitor.h>
 #include <kern/pmap.h>
+#include <kern/pmap.h>
+#include <kern/sched.h>
+#include <kern/timer.h>
 #include <kern/traceopt.h>
+#include <kern/trap.h>
+#include <kern/vsyscall.h>
 
 /* Currently active environment */
 struct Env *curenv = NULL;
@@ -29,6 +31,9 @@ struct Env *envs = env_array;
 /* All environments */
 struct Env *envs = NULL;
 #endif
+
+/* Virtual syscall page address */
+volatile int *vsys;
 
 /* Free environment list
  * (linked by Env->env_link) */
@@ -89,7 +94,17 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
  */
 void
 env_init(void) {
-    /* kzalloc_region only works with current_space != NULL */
+    /* Allocate vsys array with kzalloc_region().
+     * Don't forget about rounding.
+     * kzalloc_region only works with current_space != NULL */
+    // LAB 12: Your code here
+    size_t uvsys_size = ROUNDUP(sizeof(int) * NVSYSCALLS, PAGE_SIZE);
+    vsys = (volatile int *)kzalloc_region(uvsys_size);
+    assert(vsys != NULL);
+
+    int res;
+    if ((res = map_region(current_space, UVSYS, &kspace, (uintptr_t) vsys, uvsys_size, PROT_R | PROT_USER_ | PROT_SHARE)) < 0) 
+        panic("env_init - map_region: %i\n", res);
 
     /* Allocate envs array with kzalloc_region().
      * Don't forget about rounding.
@@ -188,7 +203,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
 #endif
 
     /* For now init trapframe with IF set */
-    env->env_tf.tf_rflags = FL_IF;
+    env->env_tf.tf_rflags = FL_IF | (type == ENV_TYPE_FS ? FL_IOPL_3 : FL_IOPL_0);
 
     /* Clear the page fault handler until user installs one. */
     env->env_pgfault_upcall = 0;
@@ -403,6 +418,17 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
     if ((res = map_region(&env->address_space, USER_STACK_TOP - USER_STACK_SIZE, NULL, 0, USER_STACK_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO)) < 0) 
         panic("load_icode: %i \n", res);
+
+    /* NOTE: When merging origin/lab10 put this hunk at the end
+     *       of the function, when user stack is already mapped. */
+    if (env->env_type == ENV_TYPE_FS) {
+        /* If we are about to start filesystem server we need to pass
+         * information about PCIe MMIO region to it. */
+        struct AddressSpace *as = switch_address_space(&env->address_space);
+        env->env_tf.tf_rsp = make_fs_args((char *)env->env_tf.tf_rsp);
+        switch_address_space(as);
+    }
+
     return 0;
 }
 
@@ -415,6 +441,8 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
 void
 env_create(uint8_t *binary, size_t size, enum EnvType type) {
     // LAB 3: Your code here
+    // LAB 8: Your code here
+    // LAB 10: Your code here
     struct Env *env;
     int status = env_alloc(&env, 0, type);
     if (status < 0) {
@@ -426,7 +454,9 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
     if (status < 0) {
         panic("load_icode: %i", status);
     }
-    // LAB 8: Your code here
+    if (type == ENV_TYPE_FS) {
+        env->env_tf.tf_rflags |= FL_IOPL_3;
+    }
 }
 
 
@@ -464,6 +494,10 @@ env_destroy(struct Env *env) {
     /* If env is currently running on other CPUs, we change its state to
      * ENV_DYING. A zombie environment will be freed the next time
      * it traps to the kernel. */
+
+    // LAB 3: Your code here
+    // LAB 10: Your code here
+
     /* Reset in_page_fault flags in case *current* environment
      * is getting destroyed after performing invalid memory access. */
     // LAB 3: Your code here

@@ -39,7 +39,7 @@ void rtc_timer_init(void);
 uint8_t rtc_check_status(void);
 
 #define CMOS_START 0xE /* start of CMOS: offset 14 */
-#define CMOS_SIZE  50  /* 50 bytes of CMOS */
+#define CMOS_SIZE  128  /* 50 bytes of CMOS */
 
 /* CMOS bytes 7 & 8: base memory size */
 #define CMOS_BASELO (CMOS_START + 7) /* low byte; RTC off. 0x15 */

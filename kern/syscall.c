@@ -26,13 +26,13 @@ sys_cputs(const char *s, size_t len) {
      * Destroy the environment if not. */
     user_mem_assert(curenv, s, len, PROT_R | PROT_USER_);
 
-    #ifdef SANITIZE_SHADOW_BASE
-        platform_asan_unpoison((void *) s, len);
-    #endif
-    cprintf("%.*s", (int)len, s);
-    #ifdef SANITIZE_SHADOW_BASE
-        platform_asan_poison((void *) s, len);
-    #endif
+    char buf[256];
+    size_t i;
+    for (i = 0; i < len; i += sizeof(buf)) {
+        size_t chunk = MIN(len - i, sizeof(buf));
+        nosan_memcpy(buf, (void *)(s + i), chunk);
+        cprintf("%.*s", (int)chunk, buf);
+    }
 
     return 0;
 }
@@ -274,6 +274,36 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
     return 0;
 }
 
+/* Map region of physical memory to the userspace address.
+ * This is meant to be used by the userspace drivers, of which
+ * the only one currently is the filesystem server.
+ *
+ * Return 0 on succeeds, < 0 on error. Erros are:
+ *  -E_BAD_ENV if environment envid doesn't currently exist,
+ *      or the caller doesn't have permission to change envid.
+ *  -E_BAD_ENV if is not a filesystem driver (ENV_TYPE_FS).
+ *  -E_INVAL if va >= MAX_USER_ADDRESS, or va is not page-aligned.
+ *  -E_INVAL if pa is not page-aligned.
+ *  -E_INVAL if size is not page-aligned.
+ *  -E_INVAL if prem contains invalid flags
+ *     (including PROT_SHARE, PROT_COMBINE or PROT_LAZY).
+ *  -E_NO_MEM if address does not exist.
+ *  -E_NO_ENT if address is already used. */
+static int
+sys_map_physical_region(uintptr_t pa, envid_t envid, uintptr_t va, size_t size, int perm) {
+    // LAB 10: Your code here
+    struct Env* env;
+    if (envid2env(envid, &env, 1) || env->env_type != ENV_TYPE_FS)
+        return -E_BAD_ENV;
+    if (PAGE_OFFSET(va) || va >= MAX_USER_ADDRESS || PAGE_OFFSET(pa) || PAGE_OFFSET(size) 
+        || perm & (PROT_SHARE | PROT_COMBINE | PROT_LAZY) || size > MAX_USER_ADDRESS || MAX_USER_ADDRESS - va < size)
+        return -E_INVAL;
+
+    return map_physical_region(&env->address_space, va, pa, size, perm | PROT_USER_ | MAP_USER_MMIO);
+
+    return 0;
+}
+
 /* Try to send 'value' to the target env 'envid'.
  * If srcva < MAX_USER_ADDRESS, then also send region currently mapped at 'srcva',
  * so that receiver gets mapping.
@@ -391,11 +421,60 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
     return 0;
 }
 
+/*
+ * This function sets trapframe and is unsafe
+ * so you need:
+ *   -Check environment id to be valid and accessible
+ *   -Check argument to be valid memory
+ *   -Use nosan_memcpy to copy from usespace
+ *   -Prevent privilege escalation by overriding segments
+ *   -Only allow program to set safe flags in RFLAGS register
+ *   -Force IF to be set in RFLAGS
+ */
+static int
+sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
+    // LAB 11: Your code here
+    struct Env* env = NULL;
+    if (envid2env(envid, &env, 0))
+        return -E_BAD_ENV;
+
+    user_mem_assert(env, tf, sizeof(*tf), PROT_R);
+
+    // nosan_memcpy(&env->env_tf, tf, sizeof(*tf));
+    nosan_memcpy(&env->env_tf, tf, sizeof(*tf));
+    env->env_tf.tf_ds = GD_UD | 3;
+    env->env_tf.tf_es = GD_UD | 3;
+    env->env_tf.tf_ss = GD_UD | 3;
+    env->env_tf.tf_cs = GD_UT | 3;
+    env->env_tf.tf_rflags &= 0xFFF;
+    env->env_tf.tf_rflags |= FL_IF;
+    return 0;
+}
+
+/* Return date and time in UNIX timestamp format: seconds passed
+ * from 1970-01-01 00:00:00 UTC. */
+static int
+sys_gettime(void) {
+    // LAB 12: Your code here
+    return gettime();
+}
+
+/*
+ * This function return the difference between maximal
+ * number of references of regions [addr, addr + size] and [addr2,addr2+size2]
+ * if addr2 is less than MAX_USER_ADDRESS, or just
+ * maximal number of references to [addr, addr + size]
+ *
+ * Use region_maxref() here.
+ */
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
-
-    return 0;
+    if (addr2 < MAX_USER_ADDRESS) {
+        return region_maxref(&curenv->address_space, addr, size) - region_maxref(&curenv->address_space, addr2, size2);
+    } else {
+        return region_maxref(&curenv->address_space, addr, size);
+    }
 }
 
 /* Dispatches to the correct kernel function, passing the arguments. */
@@ -406,6 +485,9 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
 
     // LAB 8: Your code here
     // LAB 9: Your code here
+    // LAB 10: Your code here
+    // LAB 11: Your code here
+    // LAB 12: Your code here
     switch (syscallno) {
         case SYS_cputs:
             return sys_cputs((const char *)a1, (size_t)a2);
@@ -434,6 +516,14 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
             return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
         case SYS_ipc_recv:
             return sys_ipc_recv(a1, a2);
+        case SYS_map_physical_region:
+            return sys_map_physical_region(a1, (envid_t)a2, a3, (size_t)a4, (int)a5);
+        case SYS_region_refs:
+            return sys_region_refs(a1, (size_t)a2, a3, (size_t)a4);
+        case SYS_env_set_trapframe:
+            return sys_env_set_trapframe((envid_t) a1, (struct Trapframe *) a2);
+        case SYS_gettime:
+            return sys_gettime();
     }
 
     return -E_NO_SYS;
