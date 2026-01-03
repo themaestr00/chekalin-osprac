@@ -45,7 +45,7 @@ enum EnvType {
     ENV_TYPE_KERNEL,
     ENV_TYPE_USER,
     ENV_TYPE_PCI, /* PCI server */
-    ENV_TYPE_FS, /* File system server */
+    ENV_TYPE_FS,  /* File system server */
 };
 
 struct List {

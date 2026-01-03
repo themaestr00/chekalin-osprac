@@ -621,12 +621,12 @@ dump_virtual_tree(struct Page *node, int class) {
     // LAB 7: Your code here
     for (int i = 0; i < MAX_CLASS - class; ++i) cprintf("* ");
     switch (node->state & NODE_TYPE_MASK) {
-        case MAPPING_NODE:
-            cprintf("MAPPING NODE (%08lx) - class %d\n", (unsigned long) node->phy->addr, node->phy->class);
-            break;
-        default:
-            cprintf("INTERMEDIATE NODE - class %d\n", class);
-            break;
+    case MAPPING_NODE:
+        cprintf("MAPPING NODE (%08lx) - class %d\n", (unsigned long)node->phy->addr, node->phy->class);
+        break;
+    default:
+        cprintf("INTERMEDIATE NODE - class %d\n", class);
+        break;
     }
     if (node->left) dump_virtual_tree(node->left, class - 1);
     if (node->right) dump_virtual_tree(node->right, class - 1);
@@ -653,30 +653,28 @@ dump_memory_lists(void) {
  * NOTE: Use dump_entry().
  * NOTE: Don't forget about PTE_PS
  */
-static void 
-dump_page_table_process(pte_t* pml4, int level)
-{
+static void
+dump_page_table_process(pte_t *pml4, int level) {
     size_t pte_size = 0, pte_count = 0;
-    switch(level)
-    {
-        case 1: 
-            pte_size = 4 * KB; 
-            pte_count = PT_ENTRY_COUNT;   
-            break;
-        case 2:
-            pte_size = 2 * MB; 
-            pte_count = PD_ENTRY_COUNT;   
-            break; 
-        case 3:
-            pte_size = 1 * GB; 
-            pte_count = PDP_ENTRY_COUNT;
-            break;
-        case 4: 
-            pte_size = 512 * GB; 
-            pte_count = PML4_ENTRY_COUNT; 
-            break;
-        default: 
-            assert(false); 
+    switch (level) {
+    case 1:
+        pte_size = 4 * KB;
+        pte_count = PT_ENTRY_COUNT;
+        break;
+    case 2:
+        pte_size = 2 * MB;
+        pte_count = PD_ENTRY_COUNT;
+        break;
+    case 3:
+        pte_size = 1 * GB;
+        pte_count = PDP_ENTRY_COUNT;
+        break;
+    case 4:
+        pte_size = 512 * GB;
+        pte_count = PML4_ENTRY_COUNT;
+        break;
+    default:
+        assert(false);
     }
     for (size_t now = 0; now < pte_count; ++now) {
         if (pml4[now] & PTE_P) {
@@ -808,7 +806,7 @@ memcpy_page(struct AddressSpace *dst, uintptr_t va, struct Page *page) {
     // LAB 7: Your code here
     struct AddressSpace *prev = switch_address_space(dst);
     set_wp(false);
-    nosan_memcpy((void *) va, KADDR(page2pa(page)), CLASS_SIZE(page->class));
+    nosan_memcpy((void *)va, KADDR(page2pa(page)), CLASS_SIZE(page->class));
     set_wp(true);
     switch_address_space(prev);
 }
@@ -1624,10 +1622,9 @@ detect_memory(void) {
              * of type type*/
             // LAB 6: Your code here
             attach_region(
-                start->PhysicalStart, 
-                start->PhysicalStart + start->NumberOfPages * EFI_PAGE_SIZE, 
-                type
-            );
+                    start->PhysicalStart,
+                    start->PhysicalStart + start->NumberOfPages * EFI_PAGE_SIZE,
+                    type);
 
             start = (void *)((uint8_t *)start + uefi_lp->MemoryMapDescriptorSize);
         }

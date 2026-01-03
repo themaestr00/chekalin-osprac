@@ -9,9 +9,9 @@
 #define FILEDATA (FDTABLE + MAXFD * PAGE_SIZE)
 
 /* Return the 'struct Fd*' for file descriptor index i */
-#define INDEX2FD(i) ((struct Fd *)(FDTABLE + (i)*PAGE_SIZE))
+#define INDEX2FD(i) ((struct Fd *)(FDTABLE + (i) * PAGE_SIZE))
 /* Return the file data page for file descriptor index i */
-#define INDEX2DATA(i) ((char *)(FILEDATA + (i)*PAGE_SIZE))
+#define INDEX2DATA(i) ((char *)(FILEDATA + (i) * PAGE_SIZE))
 
 
 /********************File descriptor manipulators***********************/

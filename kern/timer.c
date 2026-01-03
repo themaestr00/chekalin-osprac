@@ -75,7 +75,8 @@ acpi_enable(void) {
         ;
 }
 
-void check_checksum(uint8_t *addr, size_t len) {
+void
+check_checksum(uint8_t *addr, size_t len) {
     int32_t sum = 0;
     for (size_t i = 0; i < len; i++) {
         sum += addr[i];
@@ -409,9 +410,9 @@ pmtimer_cpu_frequency(void) {
             uint64_t tick_now = pmtimer_get_timeval();
             if (start_tick <= tick_now) {
                 now = tick_now - start_tick;
-            } else if (timer_length == 3) {           
-                now = 0x00FFFFFF - start_tick + tick_now; 
-            } else if (timer_length == 4) {                                                    
+            } else if (timer_length == 3) {
+                now = 0x00FFFFFF - start_tick + tick_now;
+            } else if (timer_length == 4) {
                 now = 0xFFFFFFFF - start_tick + tick_now;
             } else {
                 panic("Incorrect register length\n");

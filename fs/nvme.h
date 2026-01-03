@@ -53,7 +53,7 @@
 #define NVME_QUEUE_COUNT 1
 #define NVME_AQSIZE      16
 /* We need 2 pages per queue: 1 admin queue + 1 I/O queue */
-#define NVME_PAGE_COUNT  (2*(NVME_QUEUE_COUNT + 1))
+#define NVME_PAGE_COUNT (2 * (NVME_QUEUE_COUNT + 1))
 
 #define NVME_REG32(reg, offset) (volatile uint32_t *)((uint8_t *)(reg) + offset)
 #define NVME_REG64(reg, offset) (volatile uint64_t *)((uint8_t *)(reg) + offset)

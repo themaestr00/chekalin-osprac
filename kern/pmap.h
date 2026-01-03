@@ -35,7 +35,7 @@ void __nosan_memmove(void *, void *, size_t);
 
 #define MAX_CLASS 48
 
-#define POOL_ENTRIES_FOR_SIZE(sz) (((sz)-offsetof(struct PagePool, data)) / sizeof(struct Page))
+#define POOL_ENTRIES_FOR_SIZE(sz) (((sz) - offsetof(struct PagePool, data)) / sizeof(struct Page))
 
 #define KB 1024LL
 #define MB (KB * 1024)
@@ -160,7 +160,7 @@ _kaddr(const char *file, int line, physaddr_t pa) {
  * This is used for mapping required regions in kernel PML table so that
  * required addresses are accessible in 32-bit uefi. */
 #define X86MASK      0xFFFFFFFF
-#define X86ADDR(kva) ((kva)&X86MASK)
+#define X86ADDR(kva) ((kva) & X86MASK)
 
 /* Number of PML4 entries taken by userspace */
 #define NUSERPML4 1

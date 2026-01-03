@@ -187,19 +187,19 @@
 #define SEG_NULL \
     .word 0, 0;  \
     .byte 0, 0, 0, 0
-#define SEG(type, base, lim)                        \
-    .word(((lim) >> 12) & 0xFFFF), ((base)&0xFFFF); \
-    .byte(((base) >> 16) & 0xFF), (0x90 | (type)),  \
+#define SEG(type, base, lim)                          \
+    .word(((lim) >> 12) & 0xFFFF), ((base) & 0xFFFF); \
+    .byte(((base) >> 16) & 0xFF), (0x90 | (type)),    \
             (0xC0 | (((lim) >> 28) & 0xF)), (((base) >> 24) & 0xFF)
 
-#define SEG64(type, base, lim)                      \
-    .word(((lim) >> 12) & 0xFFFF), ((base)&0xFFFF); \
-    .byte(((base) >> 16) & 0xFF), (0x90 | (type)),  \
+#define SEG64(type, base, lim)                        \
+    .word(((lim) >> 12) & 0xFFFF), ((base) & 0xFFFF); \
+    .byte(((base) >> 16) & 0xFF), (0x90 | (type)),    \
             (0xA0 | (((lim) >> 28) & 0xF)), (((base) >> 24) & 0xFF)
 
-#define SEG64USER(type, base, lim)                  \
-    .word(((lim) >> 12) & 0xFFFF), ((base)&0xFFFF); \
-    .byte(((base) >> 16) & 0xFF), (0xf0 | (type)),  \
+#define SEG64USER(type, base, lim)                    \
+    .word(((lim) >> 12) & 0xFFFF), ((base) & 0xFFFF); \
+    .byte(((base) >> 16) & 0xFF), (0xf0 | (type)),    \
             (0xA0 | (((lim) >> 28) & 0xF)), (((base) >> 24) & 0xFF)
 
 #else /* not __ASSEMBLER__ */
@@ -245,8 +245,8 @@ struct Segdesc64 {
 
 #define SEG64_TSS(type, base, lim, dpl)                         \
     (struct Segdesc64) {                                        \
-        .sd_lim_15_0 = (uint64_t)(lim)&0xFFFF,                  \
-        .sd_base_15_0 = (uint64_t)(base)&0xFFFF,                \
+        .sd_lim_15_0 = (uint64_t)(lim) & 0xFFFF,                \
+        .sd_base_15_0 = (uint64_t)(base) & 0xFFFF,              \
         .sd_base_23_16 = ((uint64_t)(base) >> 16) & 0xFF,       \
         .sd_type = type,                                        \
         .sd_s = 0,                                              \
@@ -276,23 +276,23 @@ struct Segdesc64 {
     }
 
 /* Normal segment */
-#define SEG64(type, base, lim, dpl)                                   \
-    (struct Segdesc32) {                                              \
-        ((lim) >> 12) & 0xFFFF, (base)&0xFFFF, ((base) >> 16) & 0xFF, \
-                type, 1, dpl, 1, (unsigned)(lim) >> 28, 0, 1, 0, 1,   \
-                (unsigned)(base) >> 24                                \
+#define SEG64(type, base, lim, dpl)                                     \
+    (struct Segdesc32) {                                                \
+        ((lim) >> 12) & 0xFFFF, (base) & 0xFFFF, ((base) >> 16) & 0xFF, \
+                type, 1, dpl, 1, (unsigned)(lim) >> 28, 0, 1, 0, 1,     \
+                (unsigned)(base) >> 24                                  \
     }
 
-#define SEG32(type, base, lim, dpl)                                   \
-    (struct Segdesc32) {                                              \
-        ((lim) >> 12) & 0xFFFF, (base)&0xFFFF, ((base) >> 16) & 0xFF, \
-                type, 1, dpl, 1, (unsigned)(lim) >> 28, 0, 0, 1, 1,   \
-                (unsigned)(base) >> 24                                \
+#define SEG32(type, base, lim, dpl)                                     \
+    (struct Segdesc32) {                                                \
+        ((lim) >> 12) & 0xFFFF, (base) & 0xFFFF, ((base) >> 16) & 0xFF, \
+                type, 1, dpl, 1, (unsigned)(lim) >> 28, 0, 0, 1, 1,     \
+                (unsigned)(base) >> 24                                  \
     }
 
 #define SEG16(type, base, lim, dpl)                                 \
     (struct Segdesc32) {                                            \
-        (lim) & 0xFFFF, (base)&0xFFFF, ((base) >> 16) & 0xFF,       \
+        (lim) & 0xFFFF, (base) & 0xFFFF, ((base) >> 16) & 0xFF,     \
                 type, 1, dpl, 1, (unsigned)(lim) >> 16, 0, 0, 1, 0, \
                 (unsigned)(base) >> 24                              \
     }
@@ -380,7 +380,7 @@ struct Gatedesc {
  *    this interrupt/trap gate explicitly using an int instruction. */
 #define GATE(istrap, sel, off, dpl)                           \
     (struct Gatedesc) {                                       \
-        .gd_off_15_0 = (uint64_t)(off)&0xFFFF,                \
+        .gd_off_15_0 = (uint64_t)(off) & 0xFFFF,              \
         .gd_ss = (sel),                                       \
         .gd_ist = 0,                                          \
         .gd_rsv1 = 0,                                         \
@@ -394,9 +394,9 @@ struct Gatedesc {
     }
 
 /* Set up a call gate descriptor */
-#define CALLGATE(ss, off, dpl)                                      \
-    (struct Gatedesc) {                                             \
-        .gd_off_15_0 = (uint32_t)(off)&0xFFFF,                \
+#define CALLGATE(ss, off, dpl)                                \
+    (struct Gatedesc) {                                       \
+        .gd_off_15_0 = (uint32_t)(off) & 0xFFFF,              \
         .gd_ss = (ss),                                        \
         .gd_ist = 0,                                          \
         .gd_rsv1 = 0,                                         \

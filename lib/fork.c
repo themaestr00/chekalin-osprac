@@ -27,9 +27,7 @@ fork(void) {
         return 0;
     }
 
-    if (sys_map_region(0, NULL, envid, NULL, MAX_USER_ADDRESS, PROT_ALL | PROT_LAZY | PROT_COMBINE)
-        || sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall)
-        || sys_env_set_status(envid, ENV_RUNNABLE)) {
+    if (sys_map_region(0, NULL, envid, NULL, MAX_USER_ADDRESS, PROT_ALL | PROT_LAZY | PROT_COMBINE) || sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall) || sys_env_set_status(envid, ENV_RUNNABLE)) {
         return -1;
     }
     return envid;

@@ -13,9 +13,9 @@ static Header base = {.next = (Header *)space, .prev = (Header *)space};
 static Header *freep = NULL;
 struct spinlock alloc_lock = {
         .locked = 0,
-    #if trace_spinlock
+#if trace_spinlock
         .name = "alloc_lock"
-    #endif
+#endif
 };
 
 static void
@@ -35,9 +35,9 @@ test_alloc(uint8_t nbytes) {
 
     /* Make allocator thread-safe with the help of spin_lock/spin_unlock. */
     // LAB 5: Your code here:
-    
+
     size_t nunits = (nbytes + sizeof(Header) - 1) / sizeof(Header) + 1;
-    
+
     spin_lock(&alloc_lock);
     /* no free list yet */
     if (!freep) {
@@ -111,7 +111,7 @@ test_free(void *ap) {
         p->next = bp;
     }
     freep = p;
-    
+
     check_list();
     spin_unlock(&alloc_lock);
 }

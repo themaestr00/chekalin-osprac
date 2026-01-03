@@ -24,9 +24,9 @@ ipc_recv(envid_t *from_env_store, void *pg, size_t *size, int *perm_store) {
     // LAB 9: Your code here:
     pg = (pg ? pg : (void *)MAX_USER_ADDRESS);
     int res;
-    //cprintf("sys_ipc_recv start...\n");
+    // cprintf("sys_ipc_recv start...\n");
     if ((res = sys_ipc_recv(pg, PAGE_SIZE))) {
-        //cprintf("sys_ipc_recv end... %d\n", res);
+        // cprintf("sys_ipc_recv end... %d\n", res);
         if (from_env_store) {
             *from_env_store = 0;
         }
@@ -35,7 +35,7 @@ ipc_recv(envid_t *from_env_store, void *pg, size_t *size, int *perm_store) {
         }
         return res;
     } else {
-        //cprintf("sys_ipc_recv end... %d\n", res);
+        // cprintf("sys_ipc_recv end... %d\n", res);
         if (from_env_store) {
             *from_env_store = thisenv->env_ipc_from;
         }
@@ -105,7 +105,7 @@ ipc_find_env(enum EnvType type) {
 enum EnvType
 ipc_find_env_type(envid_t id) {
     for (size_t i = 0; i < NENV; i++)
-        if (envs[i].env_id == id)            
+        if (envs[i].env_id == id)
             return envs[i].env_type;
     return 0;
 }

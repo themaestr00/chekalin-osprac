@@ -80,6 +80,5 @@ sched_halt(void) {
             "hlt\n" ::"a"(cpu_ts.ts_rsp0));
 
     /* Unreachable */
-    for (;;)
-        ;
+    for (;;);
 }

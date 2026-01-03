@@ -115,7 +115,7 @@ gettime(void) {
 
     if (t0 != t1)
         t0 = get_time();
-    
+
     return t0;
 }
 

@@ -287,26 +287,26 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
     /* Map read section conents to child */
     /* Unmap it from parent */
     for (unsigned pt = 0; pt < memsz; pt += PAGE_SIZE) {
-		if (pt >= filesz) {
-            if ((res = sys_alloc_region(child, (void*) (va + pt), PAGE_SIZE, perm)) < 0) 
+        if (pt >= filesz) {
+            if ((res = sys_alloc_region(child, (void *)(va + pt), PAGE_SIZE, perm)) < 0)
                 return res;
         } else {
-            if ((res = sys_alloc_region(0, UTEMP, PAGE_SIZE, PTE_SYSCALL)) < 0) 
+            if ((res = sys_alloc_region(0, UTEMP, PAGE_SIZE, PTE_SYSCALL)) < 0)
                 return res;
 
-            if ((res = seek(fd, fileoffset + pt)) < 0) 
+            if ((res = seek(fd, fileoffset + pt)) < 0)
                 return res;
 
-            if ((res = readn(fd, UTEMP, MIN(PAGE_SIZE, filesz - pt))) < 0) 
-                return res;
-            
-            if ((res = sys_map_region(0, UTEMP, child, (void*) va + pt, PAGE_SIZE, perm)) < 0) 
+            if ((res = readn(fd, UTEMP, MIN(PAGE_SIZE, filesz - pt))) < 0)
                 return res;
 
-            if ((res = sys_unmap_region(0, UTEMP, PAGE_SIZE)) < 0) 
+            if ((res = sys_map_region(0, UTEMP, child, (void *)va + pt, PAGE_SIZE, perm)) < 0)
                 return res;
-		}
-	}
+
+            if ((res = sys_unmap_region(0, UTEMP, PAGE_SIZE)) < 0)
+                return res;
+        }
+    }
 
     return 0;
 }

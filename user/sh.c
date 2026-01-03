@@ -53,7 +53,7 @@ again:
                 cprintf("open %s for read: %i", t, fd);
                 exit();
             }
-            
+
             if (fd != 0) {
                 dup(fd, 0);
                 close(fd);

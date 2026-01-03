@@ -26,8 +26,7 @@ umain(int argc, char **argv) {
 #endif
 
     for (test2_j = 0; test2_j < 5; ++test2_j) {
-        for (test2_i = 0; test2_i < 10000; ++test2_i)
-            ;
+        for (test2_i = 0; test2_i < 10000; ++test2_i);
         sys_yield();
     }
 }

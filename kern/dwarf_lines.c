@@ -77,8 +77,7 @@ run_line_number_program(const uint8_t *program_addr, const uint8_t *end_addr, co
             } break;
             case DW_LNE_define_file: {
                 /* Skip file name */
-                while (*program_addr++)
-                    ;
+                while (*program_addr++);
                 uint64_t dir_index = 0, last_mod = 0, length = 0;
                 program_addr += dwarf_read_uleb128(program_addr, &dir_index);
                 program_addr += dwarf_read_uleb128(program_addr, &last_mod);

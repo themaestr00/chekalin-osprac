@@ -99,7 +99,7 @@ sys_exofork(void) {
 
     // LAB 9: Your code here
     struct Env *env;
-    int res; 
+    int res;
     if ((res = env_alloc(&env, curenv->env_id, ENV_TYPE_USER))) return res;
     env->env_status = ENV_NOT_RUNNABLE;
     env->env_tf = curenv->env_tf;
@@ -182,12 +182,11 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func) {
 static int
 sys_alloc_region(envid_t envid, uintptr_t addr, size_t size, int perm) {
     // LAB 9: Your code here:
-    if (addr >= MAX_USER_ADDRESS || ROUNDDOWN(addr, PAGE_SIZE) != addr
-            || (perm & (ALLOC_ZERO | ALLOC_ONE)) == (ALLOC_ZERO | ALLOC_ONE))
+    if (addr >= MAX_USER_ADDRESS || ROUNDDOWN(addr, PAGE_SIZE) != addr || (perm & (ALLOC_ZERO | ALLOC_ONE)) == (ALLOC_ZERO | ALLOC_ONE))
         return -E_INVAL;
     if (!(perm & (ALLOC_ZERO | ALLOC_ONE)))
         perm |= ALLOC_ZERO;
-    
+
     struct Env *env = NULL;
     int res = 0;
     res = envid2env(envid, &env, 1);
@@ -241,9 +240,7 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
         if (trace_envs) cprintf("sys_map_region: dstenv FAIL\n");
         return -E_BAD_ENV;
     }
-    if (CLASS_MASK(0) & srcva || srcva > MAX_USER_ADDRESS
-        || CLASS_MASK(0) & dstva || dstva > MAX_USER_ADDRESS
-        || perm & ALLOC_ZERO || perm & ALLOC_ONE || perm & ~PROT_ALL) {
+    if (CLASS_MASK(0) & srcva || srcva > MAX_USER_ADDRESS || CLASS_MASK(0) & dstva || dstva > MAX_USER_ADDRESS || perm & ALLOC_ZERO || perm & ALLOC_ONE || perm & ~PROT_ALL) {
         return -E_INVAL;
     }
 
@@ -266,7 +263,7 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
 
     // LAB 9: Your code here
     struct Env *env;
-    if (envid2env(envid, &env, 1)) 
+    if (envid2env(envid, &env, 1))
         return -E_BAD_ENV;
     if (CLASS_MASK(0) & va || va > MAX_USER_ADDRESS)
         return -E_INVAL;
@@ -292,11 +289,10 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
 static int
 sys_map_physical_region(uintptr_t pa, envid_t envid, uintptr_t va, size_t size, int perm) {
     // LAB 10: Your code here
-    struct Env* env;
+    struct Env *env;
     if (envid2env(envid, &env, 1) || env->env_type != ENV_TYPE_FS)
         return -E_BAD_ENV;
-    if (PAGE_OFFSET(va) || va >= MAX_USER_ADDRESS || PAGE_OFFSET(pa) || PAGE_OFFSET(size) 
-        || perm & (PROT_SHARE | PROT_COMBINE | PROT_LAZY) || size > MAX_USER_ADDRESS || MAX_USER_ADDRESS - va < size)
+    if (PAGE_OFFSET(va) || va >= MAX_USER_ADDRESS || PAGE_OFFSET(pa) || PAGE_OFFSET(size) || perm & (PROT_SHARE | PROT_COMBINE | PROT_LAZY) || size > MAX_USER_ADDRESS || MAX_USER_ADDRESS - va < size)
         return -E_INVAL;
 
     return map_physical_region(&env->address_space, va, pa, size, perm | PROT_USER_ | MAP_USER_MMIO);
@@ -350,11 +346,11 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
     struct Env *targetenv = NULL;
     struct Env *thisenv = NULL;
     int res = envid2env(envid, &targetenv, false);
-    if (res < 0) 
+    if (res < 0)
         return res;
 
     res = envid2env(0, &thisenv, false);
-    if (res < 0) 
+    if (res < 0)
         return res;
 
     if (targetenv->env_ipc_recving != true)
@@ -363,19 +359,17 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
     if (targetenv->env_ipc_from && targetenv->env_ipc_from != thisenv->env_id)
         return -E_IPC_NOT_RECV;
 
-    if (srcva < MAX_USER_ADDRESS && targetenv->env_ipc_dstva < MAX_USER_ADDRESS)
-    {
+    if (srcva < MAX_USER_ADDRESS && targetenv->env_ipc_dstva < MAX_USER_ADDRESS) {
         size_t min_size = MIN(targetenv->env_ipc_maxsz, size);
 
         res = map_region(&targetenv->address_space, targetenv->env_ipc_dstva, &thisenv->address_space, srcva, min_size, perm | PROT_USER_);
         // res = sys_map_region(envid, targetenv->env_ipc_dstva, curenv->env_id, srcva, min_size, perm);
-        if (res < 0) 
+        if (res < 0)
             return res;
 
         targetenv->env_ipc_maxsz = min_size;
         targetenv->env_ipc_perm = perm;
-    }
-    else 
+    } else
         targetenv->env_ipc_perm = 0;
 
     targetenv->env_ipc_recving = false;
@@ -417,7 +411,7 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
     env->env_status = ENV_NOT_RUNNABLE;
     env->env_ipc_from = 0;
     env->env_ipc_recving = 1;
-    
+
     return 0;
 }
 
@@ -440,7 +434,7 @@ sys_ipc_recv_from(uintptr_t dstva, uintptr_t maxsize, envid_t from) {
 
     return 0;
 }
-    
+
 /* This function sets trapframe and is unsafe
  * so you need:
  *   -Check environment id to be valid and accessible
@@ -453,7 +447,7 @@ sys_ipc_recv_from(uintptr_t dstva, uintptr_t maxsize, envid_t from) {
 static int
 sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
     // LAB 11: Your code here
-    struct Env* env = NULL;
+    struct Env *env = NULL;
     if (envid2env(envid, &env, 0))
         return -E_BAD_ENV;
 
@@ -488,8 +482,6 @@ sys_gettime(void) {
  */
 
 
-
-
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
@@ -512,43 +504,43 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
     // LAB 11: Your code here
     // LAB 12: Your code here
     switch (syscallno) {
-        case SYS_cputs:
-            return sys_cputs((const char *)a1, (size_t)a2);
-        case SYS_cgetc:
-            return sys_cgetc();
-        case SYS_getenvid:
-            return sys_getenvid();
-        case SYS_env_destroy:
-            return sys_env_destroy((envid_t)a1);
-        case SYS_exofork:
-            return sys_exofork();
-        case SYS_alloc_region:
-            return sys_alloc_region((envid_t)a1, a2, (size_t)a3, (int)a4);
-        case SYS_map_region:
-            return sys_map_region((envid_t)a1, a2,(envid_t)a3, a4, (size_t)a5, (int)a6);
-        case SYS_unmap_region:
-            return sys_unmap_region((envid_t)a1, a2,(size_t)a3);
-        case SYS_env_set_status:
-            return sys_env_set_status((envid_t)a1, (int)a2);
-        case SYS_env_set_pgfault_upcall:
-            return sys_env_set_pgfault_upcall((envid_t)a1, (void *)a2);
-        case SYS_yield:
-            sys_yield();
-            return 0;
-        case SYS_ipc_try_send:
-            return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
-        case SYS_ipc_recv:
-            return sys_ipc_recv(a1, a2);
-        case SYS_ipc_recv_from:
-            return sys_ipc_recv_from(a1, a2, (envid_t)a3);
-        case SYS_map_physical_region:
-            return sys_map_physical_region(a1, (envid_t)a2, a3, (size_t)a4, (int)a5);
-        case SYS_region_refs:
-            return sys_region_refs(a1, (size_t)a2, a3, (size_t)a4);
-        case SYS_env_set_trapframe:
-            return sys_env_set_trapframe((envid_t) a1, (struct Trapframe *) a2);
-        case SYS_gettime:
-            return sys_gettime();
+    case SYS_cputs:
+        return sys_cputs((const char *)a1, (size_t)a2);
+    case SYS_cgetc:
+        return sys_cgetc();
+    case SYS_getenvid:
+        return sys_getenvid();
+    case SYS_env_destroy:
+        return sys_env_destroy((envid_t)a1);
+    case SYS_exofork:
+        return sys_exofork();
+    case SYS_alloc_region:
+        return sys_alloc_region((envid_t)a1, a2, (size_t)a3, (int)a4);
+    case SYS_map_region:
+        return sys_map_region((envid_t)a1, a2, (envid_t)a3, a4, (size_t)a5, (int)a6);
+    case SYS_unmap_region:
+        return sys_unmap_region((envid_t)a1, a2, (size_t)a3);
+    case SYS_env_set_status:
+        return sys_env_set_status((envid_t)a1, (int)a2);
+    case SYS_env_set_pgfault_upcall:
+        return sys_env_set_pgfault_upcall((envid_t)a1, (void *)a2);
+    case SYS_yield:
+        sys_yield();
+        return 0;
+    case SYS_ipc_try_send:
+        return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
+    case SYS_ipc_recv:
+        return sys_ipc_recv(a1, a2);
+    case SYS_ipc_recv_from:
+        return sys_ipc_recv_from(a1, a2, (envid_t)a3);
+    case SYS_map_physical_region:
+        return sys_map_physical_region(a1, (envid_t)a2, a3, (size_t)a4, (int)a5);
+    case SYS_region_refs:
+        return sys_region_refs(a1, (size_t)a2, a3, (size_t)a4);
+    case SYS_env_set_trapframe:
+        return sys_env_set_trapframe((envid_t)a1, (struct Trapframe *)a2);
+    case SYS_gettime:
+        return sys_gettime();
     }
 
     return -E_NO_SYS;

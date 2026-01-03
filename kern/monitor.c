@@ -93,11 +93,10 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
             cprintf("    <unknown>\n");
         } else {
             cprintf("    %s:%d: %s+%lu\n",
-                info.rip_file,
-                info.rip_line,
-                info.rip_fn_name,
-                (uint64_t)(rip - info.rip_fn_addr)
-            );
+                    info.rip_file,
+                    info.rip_line,
+                    info.rip_fn_name,
+                    (uint64_t)(rip - info.rip_fn_addr));
         }
         rbp = (uint64_t *)*rbp;
     }

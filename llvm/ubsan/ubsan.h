@@ -72,9 +72,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 /*  Extended bit manipulation is also not present in JOS. */
 #ifndef __LOWEST_SET_BIT
 /* find least significant bit that is set */
-#define __LOWEST_SET_BIT(__mask) ((((__mask)-1) & (__mask)) ^ (__mask))
+#define __LOWEST_SET_BIT(__mask) ((((__mask) - 1) & (__mask)) ^ (__mask))
 #define __SHIFTOUT(__x, __mask)  (((__x) & (__mask)) / __LOWEST_SET_BIT(__mask))
-#define __SHIFTIN(__x, __mask)   ((__x)*__LOWEST_SET_BIT(__mask))
+#define __SHIFTIN(__x, __mask)   ((__x) * __LOWEST_SET_BIT(__mask))
 #define __SHIFTOUT_MASK(__mask)  __SHIFTOUT((__mask), (__mask))
 #endif
 

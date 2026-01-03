@@ -95,8 +95,8 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     // LAB 8: Your code here:
     uintptr_t old_cr3 = curenv->address_space.cr3;
     if (old_cr3 != kspace.cr3) {
-		lcr3(kspace.cr3);
-	}
+        lcr3(kspace.cr3);
+    }
 
     /* Load dwarf section pointers from either
      * currently running program binary or use
@@ -169,12 +169,11 @@ find_function(const char *const fname) {
     if (offset) {
         return offset;
     }
-    const char *strtab_start = (const char *) uefi_lp->StringTableStart;
+    const char *strtab_start = (const char *)uefi_lp->StringTableStart;
     for (struct Elf64_Sym *kern_elf64_sym = (struct Elf64_Sym *)uefi_lp->SymbolTableStart;
-        kern_elf64_sym < (struct Elf64_Sym *)uefi_lp->SymbolTableEnd; kern_elf64_sym++) {
-        if (strcmp(&strtab_start[kern_elf64_sym->st_name], fname) == 0)
-        {
-            return (uintptr_t) kern_elf64_sym->st_value;
+         kern_elf64_sym < (struct Elf64_Sym *)uefi_lp->SymbolTableEnd; kern_elf64_sym++) {
+        if (strcmp(&strtab_start[kern_elf64_sym->st_name], fname) == 0) {
+            return (uintptr_t)kern_elf64_sym->st_value;
         }
     }
     return 0;

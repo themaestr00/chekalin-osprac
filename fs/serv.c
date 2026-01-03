@@ -208,7 +208,8 @@ serve_read(envid_t envid, union Fsipc *ipc) {
     if (req->req_n > PAGE_SIZE)
         req->req_n = PAGE_SIZE;
 
-    int bytes_cnt; ;
+    int bytes_cnt;
+    ;
     if ((bytes_cnt = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset)) > 0)
         o->o_fd->fd_offset += bytes_cnt;
     return bytes_cnt;
@@ -232,9 +233,8 @@ serve_write(envid_t envid, union Fsipc *ipc) {
         return res;
 
     off_t max_off = req->req_n + o->o_fd->fd_offset;
-    if (max_off > o->o_file->f_size)
-    {
-        if ((res = file_set_size(o->o_file, max_off)) < 0) 
+    if (max_off > o->o_file->f_size) {
+        if ((res = file_set_size(o->o_file, max_off)) < 0)
             return res;
     }
 

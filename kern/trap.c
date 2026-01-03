@@ -135,7 +135,7 @@ trap_init(void) {
     extern void irq_clock_thdlr();
     extern void irq_ide_thdlr();
     extern void irq_error_thdlr();
-    
+
     extern void syscall_thdlr();
 
     idt[T_DIVIDE] = GATE(0, GD_KT, divide_thdlr, 0);
@@ -399,11 +399,11 @@ trap(struct Trapframe *tf) {
                     res ? can_redir ? "redirected to user" : "fault" : "resolved by kernel");
         }
         if (!res) {
-            //cprintf("!res\n");
+            // cprintf("!res\n");
             in_page_fault = 0;
             env_pop_tf(tf);
         }
-        //cprintf("end PF if %d\n", res);
+        // cprintf("end PF if %d\n", res);
     }
 
     assert(curenv);
@@ -494,13 +494,12 @@ page_fault_handler(struct Trapframe *tf) {
     /* Build local copy of UTrapframe */
     // LAB 9: Your code here:
     struct UTrapframe utf_copy = {
-        .utf_fault_va = fault_va, 
-        .utf_err      = tf->tf_err,
-        .utf_regs     = tf->tf_regs,
-        .utf_rip      = tf->tf_rip,
-        .utf_rflags   = tf->tf_rflags,
-        .utf_rsp      = tf->tf_rsp
-    };
+            .utf_fault_va = fault_va,
+            .utf_err = tf->tf_err,
+            .utf_regs = tf->tf_regs,
+            .utf_rip = tf->tf_rip,
+            .utf_rflags = tf->tf_rflags,
+            .utf_rsp = tf->tf_rsp};
 
     /* And then copy it userspace (nosan_memcpy()) */
     // LAB 9: Your code here:
@@ -510,7 +509,7 @@ page_fault_handler(struct Trapframe *tf) {
         rsp = tf->tf_rsp - sizeof(uint64_t);
         user_mem_assert(curenv, (void *)ROUNDDOWN(rsp, PAGE_SIZE), PAGE_SIZE, PROT_W);
 
-        nosan_memset((void *) rsp, 0, sizeof(uint64_t));
+        nosan_memset((void *)rsp, 0, sizeof(uint64_t));
     } else {
         rsp = USER_EXCEPTION_STACK_TOP;
     }
@@ -530,6 +529,5 @@ page_fault_handler(struct Trapframe *tf) {
     curenv->env_tf = *tf;
     env_run(curenv);
 
-    while (1)
-        ;
+    while (1);
 }

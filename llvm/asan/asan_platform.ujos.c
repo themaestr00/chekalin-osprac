@@ -68,9 +68,9 @@ platform_abort() {
 static bool
 asan_shadow_allocator(struct UTrapframe *utf) {
     // LAB 9: Your code here
-    if (utf->utf_fault_va >= (uintptr_t)asan_internal_shadow_start && 
+    if (utf->utf_fault_va >= (uintptr_t)asan_internal_shadow_start &&
         utf->utf_fault_va < (uintptr_t)asan_internal_shadow_end) {
-        return sys_alloc_region(sys_getenvid(), (void*)ROUNDDOWN(utf->utf_fault_va, PAGE_SIZE), PAGE_SIZE, ALLOC_ONE | PROT_RW) < 0 ? 0 : 1;
+        return sys_alloc_region(sys_getenvid(), (void *)ROUNDDOWN(utf->utf_fault_va, PAGE_SIZE), PAGE_SIZE, ALLOC_ONE | PROT_RW) < 0 ? 0 : 1;
     }
     return 0;
 }

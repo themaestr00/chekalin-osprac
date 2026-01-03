@@ -103,7 +103,7 @@ env_init(void) {
     assert(vsys != NULL);
 
     int res;
-    if ((res = map_region(current_space, UVSYS, &kspace, (uintptr_t) vsys, uvsys_size, PROT_R | PROT_USER_ | PROT_SHARE)) < 0) 
+    if ((res = map_region(current_space, UVSYS, &kspace, (uintptr_t)vsys, uvsys_size, PROT_R | PROT_USER_ | PROT_SHARE)) < 0)
         panic("env_init - map_region: %i\n", res);
 
     /* Allocate envs array with kzalloc_region().
@@ -219,7 +219,8 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     return 0;
 }
 
-int check_elf_header(uint8_t *binary, size_t size) {
+int
+check_elf_header(uint8_t *binary, size_t size) {
     if (!binary || size < sizeof(struct Elf) || (uintptr_t)binary % _Alignof(struct Elf) != 0) {
         return false;
     }
@@ -227,16 +228,15 @@ int check_elf_header(uint8_t *binary, size_t size) {
     struct Elf *elf_header = (struct Elf *)binary;
     if (elf_header->e_magic != ELF_MAGIC ||
         elf_header->e_machine != EM_X86_64 ||
-        elf_header->e_shentsize != sizeof (struct Secthdr) ||
-        elf_header->e_phentsize != sizeof (struct Proghdr) ||
+        elf_header->e_shentsize != sizeof(struct Secthdr) ||
+        elf_header->e_phentsize != sizeof(struct Proghdr) ||
         elf_header->e_shstrndx >= elf_header->e_shnum ||
         __builtin_mul_overflow(elf_header->e_phnum, elf_header->e_phentsize, &check_mul_buffer) ||
         __builtin_add_overflow(elf_header->e_phoff, check_mul_buffer, &check_add_buffer) ||
         check_add_buffer > size ||
         __builtin_mul_overflow(elf_header->e_shnum, elf_header->e_shentsize, &check_mul_buffer) ||
         __builtin_add_overflow(elf_header->e_shoff, check_mul_buffer, &check_add_buffer) ||
-        check_add_buffer > size
-    ) {
+        check_add_buffer > size) {
         return false;
     }
     return true;
@@ -278,7 +278,7 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
         }
         struct Elf64_Sym *symtab = (struct Elf64_Sym *)(binary + sh[i].sh_offset);
         int symcount = sh[i].sh_size / sh[i].sh_entsize;
-        
+
         if (sh[i].sh_link >= elf_header->e_shnum) {
             return -E_INVALID_EXE;
         }
@@ -315,7 +315,7 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
             if (symtab[j].st_size < sizeof(uintptr_t)) {
                 return -E_INVALID_EXE;
             }
-            put_unaligned(faddr, (void(**)(void))symtab[j].st_value);
+            put_unaligned(faddr, (void (**)(void))symtab[j].st_value);
         }
     }
     return 0;
@@ -380,32 +380,32 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     for (int i = 0; i < elf_header->e_phnum; ++i) {
         if (ph->p_type == ELF_PROG_LOAD) {
             if (__builtin_add_overflow(ph->p_offset, ph->p_filesz, &check_add_buffer) ||
-            check_add_buffer > size || ph->p_filesz > ph->p_memsz) {
+                check_add_buffer > size || ph->p_filesz > ph->p_memsz) {
                 return -E_INVALID_EXE;
             }
             if (ph->p_va < image_start) {
                 image_start = ph->p_va;
             }
             if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
-            check_add_buffer > image_end) {
+                check_add_buffer > image_end) {
                 image_end = ph->p_va + ph->p_memsz;
             }
             if (ph->p_va < image_start) {
                 image_start = ph->p_va;
             }
             if (__builtin_add_overflow(ph->p_va, ph->p_memsz, &check_add_buffer) ||
-            check_add_buffer > image_end) {
+                check_add_buffer > image_end) {
                 image_end = ph->p_va + ph->p_memsz;
             }
-            if ((res = map_region(&kspace, ph->p_va, NULL, 0, ph->p_memsz, PROT_RWX | ALLOC_ZERO)) < 0) 
+            if ((res = map_region(&kspace, ph->p_va, NULL, 0, ph->p_memsz, PROT_RWX | ALLOC_ZERO)) < 0)
                 panic("load_icode - map prog to kspace: %i \n", res);
-            
-            memcpy((void*)(ph->p_va), (void*)(binary + ph->p_offset), (size_t)(ph->p_filesz));
-            uint32_t prog_flags = ph->p_flags; 
+
+            memcpy((void *)(ph->p_va), (void *)(binary + ph->p_offset), (size_t)(ph->p_filesz));
+            uint32_t prog_flags = ph->p_flags;
             cprintf("load_icode - prog_flags: 0x%x \n", prog_flags);
-            
-            if ((res = map_region(&env->address_space, ph->p_va, &kspace, ph->p_va, 
-                ph->p_memsz, prog_flags | PROT_USER_)) < 0) 
+
+            if ((res = map_region(&env->address_space, ph->p_va, &kspace, ph->p_va,
+                                  ph->p_memsz, prog_flags | PROT_USER_)) < 0)
                 panic("load_icode - map prog to env->address_space: %i \n", res);
         }
         ++ph;
@@ -416,7 +416,7 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     if (image_start == UINTPTR_MAX || image_end == 0) {
         return -E_INVALID_EXE;
     }
-    if ((res = map_region(&env->address_space, USER_STACK_TOP - USER_STACK_SIZE, NULL, 0, USER_STACK_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO)) < 0) 
+    if ((res = map_region(&env->address_space, USER_STACK_TOP - USER_STACK_SIZE, NULL, 0, USER_STACK_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO)) < 0)
         panic("load_icode: %i \n", res);
 
     /* NOTE: When merging origin/lab10 put this hunk at the end
@@ -502,7 +502,7 @@ env_destroy(struct Env *env) {
      * is getting destroyed after performing invalid memory access. */
     // LAB 3: Your code here
     // LAB 8: Your code here
-    
+
     in_page_fault = false;
     if (env == curenv || env->env_status != ENV_RUNNING) {
         env_free(env);
@@ -512,7 +512,6 @@ env_destroy(struct Env *env) {
     } else {
         env->env_status = ENV_DYING;
     }
-
 }
 
 #ifdef CONFIG_KSPACE
@@ -608,6 +607,5 @@ env_run(struct Env *env) {
     }
     env_pop_tf(&curenv->env_tf);
 
-    while (1)
-        ;
+    while (1);
 }

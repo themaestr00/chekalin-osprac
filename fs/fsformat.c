@@ -31,7 +31,7 @@ typedef int bool;
 #include <inc/mmu.h>
 #include <inc/fs.h>
 
-#define ROUNDUP(n, v) ((n)-1 + (v) - ((n)-1) % (v))
+#define ROUNDUP(n, v) ((n) - 1 + (v) - ((n) - 1) % (v))
 #define MAX_DIR_ENTS  128
 
 struct Dir {

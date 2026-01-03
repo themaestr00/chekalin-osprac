@@ -26,7 +26,7 @@ nvme_map(struct NvmeController *ctl) {
         reg_size = NVME_MAX_MAP_MEM;
     }
     uintptr_t nvme_pa = get_bar_address(ctl->pcidev, 0);
-    if (sys_map_physical_region(nvme_pa, CURENVID, (void *) ctl->mmio_base_addr, reg_size, PROT_RW | PROT_CD)) {
+    if (sys_map_physical_region(nvme_pa, CURENVID, (void *)ctl->mmio_base_addr, reg_size, PROT_RW | PROT_CD)) {
         return NVME_MAP_ERR;
     }
 
@@ -630,7 +630,7 @@ nvme_cmd_rw(struct NvmeController *ctl, struct NvmeQueueAttributes *ioq, int opc
      * TIP: Use ioq->sq_tail as cid like it is done in other commands for simplicity. */
     // LAB 10: Your code here
     int cid = ioq->sq_tail;
-    struct NvmeCmdRW * cmd = &ioq->sq[cid].rw;
+    struct NvmeCmdRW *cmd = &ioq->sq[cid].rw;
     memset(cmd, 0, sizeof(struct NvmeCmdRW));
     cmd->common.opc = opc;
     cmd->common.nsid = nsid;
