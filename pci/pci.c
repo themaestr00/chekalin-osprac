@@ -1,7 +1,8 @@
-#include "fs/pci_classes.h"
-#include "fs/pci.h"
 #include <inc/x86.h>
 #include <inc/lib.h>
+
+#include "pci_classes.h"
+#include "pci.h"
 
 struct ECAMSegment {
     void *vaddr;
@@ -15,11 +16,11 @@ struct ECAMSegment {
 
 static struct PciDevice *pci_device_list = NULL;
 
-static struct PciDevice pci_device_buffer[PCI_MAX_DEVICES];
+struct PciDevice pci_device_buffer[PCI_MAX_DEVICES];
 static char *pci_class_descriptions[256];
 static volatile uint8_t *ecam_base_addr;
 
-static struct PcieIoOps pcie_io;
+struct PcieIoOps pcie_io;
 
 static struct ECAMSegment segments[16];
 static size_t segment_count;

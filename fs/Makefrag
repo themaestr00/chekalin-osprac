@@ -5,7 +5,6 @@ FSOFILES := 		$(OBJDIR)/fs/bc.o \
 			$(OBJDIR)/fs/fs.o \
 			$(OBJDIR)/fs/serv.o \
 			$(OBJDIR)/fs/test.o \
-			$(OBJDIR)/fs/pci.o \
 			$(OBJDIR)/fs/nvme.o
 
 FSIMGTXTFILES :=	fs/newmotd \
@@ -13,7 +12,10 @@ FSIMGTXTFILES :=	fs/newmotd \
 			fs/lorem \
 			fs/script \
 			fs/testshell.key \
-			fs/testshell.sh
+			fs/testshell.sh \
+# 			fs/video \
+# 			fs/vid3 \
+# 			doom_jos_edition/doom1.wad \
 
 USERAPPS :=		$(OBJDIR)/user/init \
 			$(OBJDIR)/user/cat \
@@ -33,11 +35,15 @@ USERAPPS :=		$(OBJDIR)/user/init \
 			$(OBJDIR)/user/hello \
 			$(OBJDIR)/user/date \
 			$(OBJDIR)/user/vdate \
+# 			$(OBJDIR)/user/vga_test \
+# 			$(OBJDIR)/user/videoplayer \
+# 			$(OBJDIR)/user/videoplayer_rgb \
+# 			$(OBJDIR)/doom_jos_edition/doomgeneric_sdl \
 
 
 FSIMGFILES := $(FSIMGTXTFILES) $(USERAPPS)
 
-$(OBJDIR)/fs/%.o: fs/%.c fs/fs.h fs/pci.h fs/nvme.h inc/lib.h $(OBJDIR)/.vars.USER_CFLAGS
+$(OBJDIR)/fs/%.o: fs/%.c fs/fs.h pci/pci.h fs/nvme.h inc/lib.h $(OBJDIR)/.vars.USER_CFLAGS
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
 	$(V)$(CC) $(USER_CFLAGS) $(USER_SAN_CFLAGS) -c -o $@ $<

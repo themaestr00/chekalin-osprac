@@ -75,6 +75,7 @@ else
 KERN_BINLINK  := -b binary
 KERN_BINFILES := $(shell find user/ -type f -name '*.c' | sort)
 KERN_BINFILES += fs/fs.c
+KERN_BINFILES += pci/pci.c
 KERN_BINFILES := $(patsubst %.c, $(OBJDIR)/%, $(KERN_BINFILES))
 KERN_BINFILES := $(subst //,/,$(KERN_BINFILES))
 endif

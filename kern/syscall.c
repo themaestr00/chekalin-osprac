@@ -417,12 +417,31 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
     env->env_status = ENV_NOT_RUNNABLE;
     env->env_ipc_from = 0;
     env->env_ipc_recving = 1;
-
+    
     return 0;
 }
 
-/*
- * This function sets trapframe and is unsafe
+static int
+sys_ipc_recv_from(uintptr_t dstva, uintptr_t maxsize, envid_t from) {
+    if (dstva < MAX_USER_ADDRESS && (ROUNDDOWN(dstva, PAGE_SIZE) != dstva || maxsize == 0 || ROUNDDOWN(maxsize, PAGE_SIZE) != maxsize))
+        return -E_INVAL;
+
+    struct Env *env = NULL;
+    int res = 0;
+    res = envid2env(0, &env, 0);
+    if (res < 0 || env == NULL) {
+        return -E_BAD_ENV;
+    }
+    env->env_ipc_dstva = dstva;
+    env->env_ipc_maxsz = maxsize;
+    env->env_status = ENV_NOT_RUNNABLE;
+    env->env_ipc_from = from;
+    env->env_ipc_recving = 1;
+
+    return 0;
+}
+    
+/* This function sets trapframe and is unsafe
  * so you need:
  *   -Check environment id to be valid and accessible
  *   -Check argument to be valid memory
@@ -467,6 +486,10 @@ sys_gettime(void) {
  *
  * Use region_maxref() here.
  */
+
+
+
+
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
@@ -516,6 +539,8 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
             return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, a3, (size_t)a4, (int)a5);
         case SYS_ipc_recv:
             return sys_ipc_recv(a1, a2);
+        case SYS_ipc_recv_from:
+            return sys_ipc_recv_from(a1, a2, (envid_t)a3);
         case SYS_map_physical_region:
             return sys_map_physical_region(a1, (envid_t)a2, a3, (size_t)a4, (int)a5);
         case SYS_region_refs:

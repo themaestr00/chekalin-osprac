@@ -6,7 +6,7 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 
-#include "pci.h"
+#include "pci/pci.h"
 #include "fs.h"
 #include "nvme.h"
 
@@ -338,7 +338,7 @@ umain(int argc, char **argv) {
     binaryname = "fs";
     cprintf("FS is running\n");
 
-    pci_init(argv);
+    // pci_init(argv);
     nvme_init();
 
     /* Check that we are able to do I/O */

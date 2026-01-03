@@ -167,6 +167,7 @@ i386_init(void) {
     ENV_CREATE_KERNEL_TYPE(prog_test6);
 #else
 
+    ENV_CREATE(pci_pci, ENV_TYPE_PCI);
 #if LAB >= 10
     ENV_CREATE(fs_fs, ENV_TYPE_FS);
 #endif

@@ -47,6 +47,29 @@ ipc_recv(envid_t *from_env_store, void *pg, size_t *size, int *perm_store) {
     return -1;
 }
 
+int32_t
+ipc_recv_from(envid_t *from_env_store, void *pg, size_t *size, int *perm_store, envid_t from) {
+    pg = (pg ? pg : (void *)MAX_USER_ADDRESS);
+    int res;
+    if ((res = sys_ipc_recv_from(pg, PAGE_SIZE, from))) {
+        if (from_env_store) {
+            *from_env_store = 0;
+        }
+        if (perm_store) {
+            *perm_store = 0;
+        }
+        return res;
+    } else {
+        if (from_env_store) {
+            *from_env_store = thisenv->env_ipc_from;
+        }
+        if (perm_store) {
+            *perm_store = thisenv->env_ipc_perm;
+        }
+        return thisenv->env_ipc_value;
+    }
+}
+
 /* Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
  * This function keeps trying until it succeeds.
  * It should panic() on any error other than -E_IPC_NOT_RECV.
@@ -76,5 +99,13 @@ ipc_find_env(enum EnvType type) {
     for (size_t i = 0; i < NENV; i++)
         if (envs[i].env_type == type)
             return envs[i].env_id;
+    return 0;
+}
+
+enum EnvType
+ipc_find_env_type(envid_t id) {
+    for (size_t i = 0; i < NENV; i++)
+        if (envs[i].env_id == id)            
+            return envs[i].env_type;
     return 0;
 }

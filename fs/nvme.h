@@ -1,6 +1,6 @@
 #ifndef NVME_H
 #define NVME_H
-#include "pci.h"
+#include "pci/pci.h"
 
 #define PACKED     __attribute__((packed))
 #define ALIGNED(n) __attribute__((aligned(n)))

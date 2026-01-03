@@ -142,6 +142,9 @@ uintptr_t get_bar_address(struct PciDevice *pcid, uint32_t barno);
 void pci_init(char **argv);
 struct PciDevice *find_pci_dev(int class, int sub);
 
+extern uintptr_t get_tsc_freq();
+
+
 struct PcieIoOps {
     uint32_t (*read32)(struct PciDevice *pcid, uint8_t reg);
     uint16_t (*read16)(struct PciDevice *pcid, uint8_t reg);
@@ -151,6 +154,46 @@ struct PcieIoOps {
     void (*write16)(struct PciDevice *pcid, uint8_t reg, uint16_t val);
     void (*write8)(struct PciDevice *pcid, uint8_t reg, uint8_t val);
 };
+
+extern uint64_t tsc_freq;
+
+enum {
+    PCIREQ_FIND_PCI_DEV = 1,
+    PCIREQ_GET_BAR_SIZE,
+    PCIREQ_GET_BAR_ADDRESS,
+    PCIREQ_GET_TSC_FREQ
+};
+
+union PciIpc {
+    struct Fsreq_find_pci_dev {
+        int class;
+        int sub;
+    } find;
+    struct Fsret_find_pci_dev {
+        struct PciDevice *pcid;
+    } findRet;
+    struct Fsreq_get_bar_size {
+        struct PciDevice *pcid;
+        uint32_t barno;
+    } barsize;
+    struct Fsret_get_bar_size {
+        uint32_t size;
+    } barsizeRet;
+    struct Fsreq_get_bar_address {
+        struct PciDevice *pcid;
+        uint32_t barno;
+    } barpaddr;
+    struct Fsret_get_bar_address {
+        uintptr_t address;
+    } barpaddrRet;
+    struct Fsret_get_tsc_freq {
+        uint64_t tsc_freq;
+    } tscfreqRet;
+
+    /* Ensure Pciipc is one page */
+    char _pad[PAGE_SIZE];
+};
+
 
 extern uint64_t tsc_freq;
 

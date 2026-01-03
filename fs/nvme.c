@@ -317,6 +317,8 @@ nvme_init(void) {
 
     ctl->pcidev = pcidevice;
 
+    tsc_freq = get_tsc_freq();
+
     err = nvme_map(ctl);
     if (err)
         panic("NVMe registers mapping failed\n");

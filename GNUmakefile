@@ -313,6 +313,7 @@ include prog/Makefrag
 else
 include user/Makefrag
 include fs/Makefrag
+include pci/MAKEFRAG
 endif
 
 QEMUOPTS = -hda fat:rw:$(JOS_ESP) -serial mon:stdio -gdb tcp::$(GDBPORT)

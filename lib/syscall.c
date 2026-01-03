@@ -152,6 +152,15 @@ sys_ipc_recv(void *dstva, size_t size) {
 }
 
 int
+sys_ipc_recv_from(void *dstva, size_t size, envid_t from) {
+    int res = syscall(SYS_ipc_recv_from, 1, (uintptr_t)dstva, size, from, 0, 0, 0);
+#ifdef SANITIZE_USER_SHADOW_BASE
+    if (!res) platform_asan_unpoison(dstva, thisenv->env_ipc_maxsz);
+#endif
+    return res;
+}
+
+int
 sys_gettime(void) {
     return syscall(SYS_gettime, 0, 0, 0, 0, 0, 0, 0);
 }

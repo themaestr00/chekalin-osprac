@@ -1,0 +1,17 @@
+OBJDIRS += pci
+
+PCIOFILES := $(OBJDIR)/pci/serv.o \
+			$(OBJDIR)/pci/pci.o
+
+$(OBJDIR)/pci/%.o: pci/%.c pci/pci.h inc/lib.h $(OBJDIR)/.vars.USER_CFLAGS
+	@echo + cc[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(USER_CFLAGS) $(USER_SAN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/pci/pci: $(PCIOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a $(USER_EXTRA_OBJFILES) user/user.ld
+	@echo + ld $@
+	$(V)mkdir -p $(@D)
+	$(V)$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) $(USER_SAN_LDFLAGS) -nostdlib \
+		$(OBJDIR)/lib/entry.o $(PCIOFILES) $(USER_EXTRA_OBJFILES) \
+		-L$(OBJDIR)/lib -ljos $(GCC_LIB)
+	$(V)$(OBJDUMP) -S $@ >$@.asm
