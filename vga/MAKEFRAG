@@ -1,0 +1,17 @@
+# OBJDIRS += vga
+
+# VGAFILES := $(OBJDIR)/vga/videoserver.o \
+# 			$(OBJDIR)/vga/vga.o 
+
+# $(OBJDIR)/vga/%.o: vga/%.c vga/vga.h inc/lib.h $(OBJDIR)/.vars.USER_CFLAGS
+# 	@echo + cc[VGA] $<
+# 	@mkdir -p $(@D)
+# 	$(V)$(CC) $(USER_CFLAGS) $(USER_SAN_CFLAGS) -c -o $@ $<
+
+# $(OBJDIR)/vga/vga: $(VGAFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a $(USER_EXTRA_OBJFILES) user/user.ld
+# 	@echo + ld $@
+# 	$(V)mkdir -p $(@D)
+# 	$(V)$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) $(USER_SAN_LDFLAGS) -nostdlib \
+# 		$(OBJDIR)/lib/entry.o $(VGAFILES) obj/pci/pci.o $(USER_EXTRA_OBJFILES) \
+# 		-L$(OBJDIR)/lib -ljos $(GCC_LIB)
+# 	$(V)$(OBJDUMP) -S $@ >$@.asm
