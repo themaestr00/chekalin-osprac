@@ -35,10 +35,8 @@ USERAPPS :=		$(OBJDIR)/user/init \
 			$(OBJDIR)/user/hello \
 			$(OBJDIR)/user/date \
 			$(OBJDIR)/user/vdate \
-# 			$(OBJDIR)/user/vga_test \
-# 			$(OBJDIR)/user/videoplayer \
-# 			$(OBJDIR)/user/videoplayer_rgb \
-# 			$(OBJDIR)/doom_jos_edition/doomgeneric_sdl \
+			$(OBJDIR)/user/bga_test \
+			$(OBJDIR)/user/testmalloc \
 
 
 FSIMGFILES := $(FSIMGTXTFILES) $(USERAPPS)

@@ -312,7 +312,7 @@ page_unref(struct Page *page) {
                 free_descriptor(par->right);
                 par->right = NULL;
 
-                if (par->state == ALLOCATABLE_NODE) {
+                if (par->state == ALLOCATABLE_NODE && par->refc == 0) {
                     assert(list_empty((struct List *)par));
                     list_append(&free_classes[par->class], (struct List *)par);
                 }

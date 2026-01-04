@@ -21,6 +21,7 @@
 #include <inc/fs.h>
 #include <inc/fd.h>
 #include <inc/args.h>
+#include <inc/vga.h>
 
 #ifdef SANITIZE_USER_SHADOW_BASE
 /* asan unpoison routine used for whitelisting regions. */
@@ -63,9 +64,10 @@ char *readline(const char *buf);
 /* Memory protection flags & attributes
  * NOTE These should be in-sync with kern/pmap.h
  * TODO Create dedicated header for them */
-#define PROT_X       0x1 /* Executable */
-#define PROT_W       0x2 /* Writable */
-#define PROT_R       0x4 /* Readable (mostly ignored) */
+#define PROT_X       0x1  /* Executable */
+#define PROT_W       0x2  /* Writable */
+#define PROT_R       0x4  /* Readable (mostly ignored) */
+#define PROT_USER    0x20 /* User accessible */
 #define PROT_RW      (PROT_R | PROT_W)
 #define PROT_WC      0x8   /* Write-combining */
 #define PROT_CD      0x18  /* Cache disable */
@@ -97,7 +99,15 @@ int sys_ipc_try_send(envid_t to_env, uint64_t value, void *pg, size_t size, int 
 int sys_ipc_recv(void *rcv_pg, size_t size);
 int sys_ipc_recv_from(void *dstva, size_t size, envid_t from);
 int sys_gettime(void);
+int sys_display_change_vga_state(bool new_state);
 int vsys_gettime(void);
+void vsys_sleep(int seconds);
+
+void *malloc(size_t n);
+void *calloc(size_t num, size_t size);
+void *realloc(void *ptr, size_t newsize);
+void free(void *ptr);
+size_t get_allocsize(void *ptr);
 
 /* This must be inlined. Exercise for reader: why? */
 static inline envid_t __attribute__((always_inline))
@@ -162,6 +172,29 @@ int pipeisclosed(int pipefd);
 
 /* wait.c */
 void wait(envid_t env);
+
+int sys_resize_uefi_display(uint16_t width, uint16_t height);
+
+/* vga.c */
+Window_ptr vga_window_create(uint32_t width, uint32_t height, vga_window_mode mode);
+
+int vga_window_destroy(Window_ptr window);
+
+Texture_ptr vga_texture_create(uint32_t width, uint32_t height, bool need_mapping, uint32_t **buffer_map);
+
+int vga_texture_destroy(Texture_ptr texture);
+
+Renderer_ptr vga_renderer_create(Window_ptr window);
+
+int vga_renderer_destroy(Renderer_ptr renderer);
+
+int vga_texture_update(Texture_ptr texture, char *buffer, size_t size);
+
+int vga_texture_copy(Renderer_ptr renderer, Texture_ptr texture);
+
+int vga_display(Renderer_ptr renderer);
+
+int vga_clear(Renderer_ptr renderer);
 
 /* File open modes */
 #define O_RDONLY  0x0000 /* open for reading only */

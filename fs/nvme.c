@@ -1,6 +1,7 @@
 #include "nvme.h"
 #include <inc/x86.h>
 #include <inc/lib.h>
+#include <pci/pci.h>
 
 static int nvme_acmd_get_features(struct NvmeController *ctl, int nsid, int fid, uint64_t prp1, uint64_t prp2, uint32_t *res);
 static int nvme_acmd_set_features(struct NvmeController *ctl, int nsid, int fid, uint64_t prp1, uint64_t prp2, uint32_t *res);
@@ -31,7 +32,7 @@ nvme_map(struct NvmeController *ctl) {
     }
 
 
-    DEBUG("NVMe MMIO base = %p, size = %x, pa = %lx", ctl->mmio_base_addr, memsize, nvme_pa);
+    DEBUG("NVMe MMIO base = %p, size = %lx, pa = %lx", ctl->mmio_base_addr, reg_size, nvme_pa);
 
     return NVME_OK;
 }

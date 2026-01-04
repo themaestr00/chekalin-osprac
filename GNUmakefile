@@ -147,7 +147,7 @@ else
 CFLAGS += -O1
 endif
 CFLAGS += -ffreestanding -fno-omit-frame-pointer -mno-red-zone
-CFLAGS += -Wall -Wformat=2 -Wno-unused-function -Werror -g -gpubnames -gdwarf-4
+CFLAGS += -g -gpubnames -gdwarf-4
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
@@ -280,9 +280,8 @@ all: .git/hooks/post-checkout .git/hooks/pre-commit
 
 # make it so that no intermediate .o files are ever deleted
 .PRECIOUS:  $(OBJDIR)/kern/%.o \
-	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
-	   $(OBJDIR)/user/%.o \
-	   $(OBJDIR)/prog/%.o
+	   $(OBJDIR)/lib/%.o $(OBJDIR)/pci/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
+	   $(OBJDIR)/user/%.o $(OBJDIR)/bga/%.o \
 
 KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -DLAB=$(LAB) -mcmodel=large -m64
 USER_CFLAGS := $(CFLAGS) -DLAB=$(LAB) -mcmodel=large -m64
@@ -312,12 +311,13 @@ ifeq ($(CONFIG_KSPACE),y)
 include prog/Makefrag
 else
 include user/Makefrag
+include pci/Makefrag
 include fs/Makefrag
-include pci/MAKEFRAG
+include bga/Makefrag
 endif
 
 QEMUOPTS = -hda fat:rw:$(JOS_ESP) -serial mon:stdio -gdb tcp::$(GDBPORT)
-QEMUOPTS += -m 512M -M q35 -cpu Nehalem -d int,cpu_reset,mmu,pcall -no-reboot
+QEMUOPTS += -m 512M -M q35 -cpu Nehalem -d int,cpu_reset,mmu,pcall -no-reboot -vga std
 
 QEMUOPTS += $(shell if $(QEMU) -display none -help | grep -q '^-D '; then echo '-D qemu.log'; fi)
 IMAGES = $(OVMF_FIRMWARE) $(JOS_LOADER) $(OBJDIR)/kern/kernel $(JOS_ESP)/EFI/BOOT/kernel $(JOS_ESP)/EFI/BOOT/$(JOS_BOOTER)

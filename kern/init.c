@@ -171,6 +171,7 @@ i386_init(void) {
 #if LAB >= 10
     ENV_CREATE(fs_fs, ENV_TYPE_FS);
 #endif
+    ENV_CREATE(bga_bga, ENV_TYPE_VGA);
 
 #if defined(TEST)
     /* Don't touch -- used by grading script! */

@@ -1,6 +1,6 @@
 OBJDIRS += pci
 
-PCIOFILES := $(OBJDIR)/pci/serv.o \
+PCIOFILES := 		$(OBJDIR)/pci/serv.o \
 			$(OBJDIR)/pci/pci.o
 
 $(OBJDIR)/pci/%.o: pci/%.c pci/pci.h inc/lib.h $(OBJDIR)/.vars.USER_CFLAGS
