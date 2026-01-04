@@ -104,6 +104,9 @@
  * (this *should* be defined as a literal number) */
 #define KERN_START_OFFSET 0x02100000
 
+#define USER_HEAP_TOP 0x6000000000
+#define VIDEO_MAP_TOP 0x6a00000000
+
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
  * IOPHYSMEM can be addressed at KERN_BASE_ADDR + IOPHYSMEM.  The hole ends
  * at physical address EXTPHYSMEM. */

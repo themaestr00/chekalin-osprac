@@ -46,6 +46,7 @@ enum EnvType {
     ENV_TYPE_USER,
     ENV_TYPE_PCI, /* PCI server */
     ENV_TYPE_FS,  /* File system server */
+    ENV_TYPE_VGA, /* VGA server */
 };
 
 struct List {

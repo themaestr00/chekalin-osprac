@@ -1,5 +1,6 @@
 /* See COPYRIGHT for copyright information. */
 
+#include "vsyscall.h"
 #include <inc/assert.h>
 #include <inc/kbdreg.h>
 #include <inc/memlayout.h>
@@ -45,6 +46,10 @@ static uint32_t crt_cols;
 static uint32_t crt_size;
 static uint16_t crt_pos;
 static uint32_t *crt_buf = (uint32_t *)FRAMEBUFFER;
+
+static int32_t mouse_x;
+static int32_t mouse_y;
+static bool vga_works = false;
 
 static bool serial_exists;
 
@@ -578,4 +583,27 @@ iscons(int fdnum) {
     /* Used by readline */
 
     return 1;
+}
+
+void
+fb_resize(uint16_t width, uint16_t height) {
+    uefi_vres = height;
+    uefi_hres = width;
+    uefi_stride = width;
+    crt_rows = uefi_vres / SYMBOL_SIZE;
+    crt_cols = uefi_hres / SYMBOL_SIZE;
+    crt_size = crt_rows * crt_cols;
+    crt_pos = crt_cols;
+
+    vsys[VSYS_display_width] = uefi_hres;
+    vsys[VSYS_display_height] = uefi_vres;
+
+    mouse_x = uefi_hres / 2;
+    mouse_y = uefi_vres / 2;
+}
+
+int
+fb_change_vga_state(bool new_state) {
+    vga_works = new_state;
+    return 0;
 }

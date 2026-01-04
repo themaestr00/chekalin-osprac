@@ -236,7 +236,7 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
         if (trace_envs) cprintf("sys_map_region: srcenv FAIL\n");
         return -E_BAD_ENV;
     }
-    if (envid2env(dstenvid, &dstenv, 1)) {
+    if (envid2env(dstenvid, &dstenv, (srcenv->env_type == ENV_TYPE_VGA || srcenv->env_type == ENV_TYPE_PCI) ? 0 : 1)) {
         if (trace_envs) cprintf("sys_map_region: dstenv FAIL\n");
         return -E_BAD_ENV;
     }
@@ -290,7 +290,7 @@ static int
 sys_map_physical_region(uintptr_t pa, envid_t envid, uintptr_t va, size_t size, int perm) {
     // LAB 10: Your code here
     struct Env *env;
-    if (envid2env(envid, &env, 1) || env->env_type != ENV_TYPE_FS)
+    if (envid2env(envid, &env, 1) || (env->env_type != ENV_TYPE_VGA && env->env_type != ENV_TYPE_FS && env->env_type != ENV_TYPE_PCI))
         return -E_BAD_ENV;
     if (PAGE_OFFSET(va) || va >= MAX_USER_ADDRESS || PAGE_OFFSET(pa) || PAGE_OFFSET(size) || perm & (PROT_SHARE | PROT_COMBINE | PROT_LAZY) || size > MAX_USER_ADDRESS || MAX_USER_ADDRESS - va < size)
         return -E_INVAL;
@@ -492,6 +492,15 @@ sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     }
 }
 
+void
+sys_resize_display(uint16_t width, uint16_t height) {
+    fb_resize(width, height);
+}
+
+void
+sys_display_change_vga_state(bool new_state) {
+    fb_change_vga_state(new_state);
+}
 /* Dispatches to the correct kernel function, passing the arguments. */
 uintptr_t
 syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6) {
@@ -541,6 +550,12 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
         return sys_env_set_trapframe((envid_t)a1, (struct Trapframe *)a2);
     case SYS_gettime:
         return sys_gettime();
+    case SYS_resize_display:
+        sys_resize_display((uint16_t) a1, (uint16_t) a2);
+        return 0;
+    case SYS_display_change_vga_state:
+        sys_display_change_vga_state((bool) a1);
+        return 0;
     }
 
     return -E_NO_SYS;

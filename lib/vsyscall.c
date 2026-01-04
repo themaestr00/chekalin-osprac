@@ -14,3 +14,13 @@ int
 vsys_gettime(void) {
     return vsyscall(VSYS_gettime);
 }
+
+void
+vsys_sleep(int seconds) {
+    int begin_time = vsys_gettime();
+    int cur_time = vsys_gettime();
+    while (cur_time - begin_time < seconds) {
+        sys_yield();
+        cur_time = vsys_gettime();
+    }
+}

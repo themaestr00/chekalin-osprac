@@ -22,4 +22,7 @@ void kbd_intr(void);
 /* IRQ4 */
 void serial_intr(void);
 
+void fb_resize(uint16_t width, uint16_t height);
+int fb_change_vga_state(bool new_state);
+
 #endif /* _CONSOLE_H_ */

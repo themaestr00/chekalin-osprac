@@ -164,3 +164,14 @@ int
 sys_gettime(void) {
     return syscall(SYS_gettime, 0, 0, 0, 0, 0, 0, 0);
 }
+
+int
+sys_resize_uefi_display(uint16_t width, uint16_t height) {
+    return syscall(SYS_resize_display, 0, width, height, 0, 0, 0, 0);
+}
+
+
+int
+sys_display_change_vga_state(bool new_state) {
+    return syscall(SYS_display_change_vga_state, 0, new_state, 0, 0, 0, 0, 0);
+}

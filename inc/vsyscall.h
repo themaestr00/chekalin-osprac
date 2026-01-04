@@ -4,6 +4,8 @@
 /* system call numbers */
 enum {
     VSYS_gettime,
+    VSYS_display_width,
+    VSYS_display_height,
     NVSYSCALLS
 };
 

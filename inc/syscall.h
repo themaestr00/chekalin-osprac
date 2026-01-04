@@ -1,6 +1,16 @@
 #ifndef JOS_INC_SYSCALL_H
 #define JOS_INC_SYSCALL_H
 
+#define MAX_MEM_DESCR 0x10000
+
+#include <inc/types.h>
+
+typedef struct {
+    uintptr_t heap_ptr;
+    size_t size;
+    bool is_free;
+} MemoryDescriptor;
+
 /* system call numbers */
 enum {
     SYS_cputs = 0,
@@ -21,6 +31,8 @@ enum {
     SYS_ipc_recv,
     SYS_ipc_recv_from,
     SYS_gettime,
+    SYS_resize_display,
+    SYS_display_change_vga_state,
     NSYSCALLS
 };
 
