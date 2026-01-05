@@ -222,11 +222,14 @@ memset(void *v, int c, size_t n) {
     }
 
     uint64_t k = 0x101010101010101ULL * (c & 0xFFU);
+    uint8_t k8 = (uint8_t)k;
+    uint16_t k16 = (uint16_t)k;
+    uint32_t k32 = (uint32_t)k;
 
     if (__builtin_expect((uintptr_t)ptr & 7, 0)) {
-        if ((uintptr_t)ptr & 1) *ptr = k, ptr += 1;
-        if ((uintptr_t)ptr & 2) *(uint16_t *)ptr = k, ptr += 2;
-        if ((uintptr_t)ptr & 4) *(uint32_t *)ptr = k, ptr += 4;
+        if ((uintptr_t)ptr & 1) *ptr = k8, ptr += 1;
+        if ((uintptr_t)ptr & 2) *(uint16_t *)ptr = k16, ptr += 2;
+        if ((uintptr_t)ptr & 4) *(uint32_t *)ptr = k32, ptr += 4;
     }
 
     if (__builtin_expect(ni >> 3, 1)) {
@@ -236,9 +239,9 @@ memset(void *v, int c, size_t n) {
     }
 
     if (__builtin_expect(ni, 0)) {
-        if (ni & 4) *(uint32_t *)ptr = k, ptr += 4;
-        if (ni & 2) *(uint16_t *)ptr = k, ptr += 2;
-        if (ni & 1) *ptr = k;
+        if (ni & 4) *(uint32_t *)ptr = k32, ptr += 4;
+        if (ni & 2) *(uint16_t *)ptr = k16, ptr += 2;
+        if (ni & 1) *ptr = k8;
     }
 
     return v;
