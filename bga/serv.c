@@ -69,7 +69,8 @@ command_texture_create(envid_t source, union Vgaipc *ipc) {
     }
     texture->width = command->width;
     texture->height = command->height;
-    texture->buf = malloc(sizeof(uint32_t) * texture->width * texture->height);
+    size_t tex_bytes = sizeof(uint32_t) * texture->width * texture->height;
+    texture->buf = malloc(tex_bytes);
     if (!texture->buf) {
         if (debug) cprintf("Malloc 2 failed\n");
         free(texture);
@@ -78,7 +79,8 @@ command_texture_create(envid_t source, union Vgaipc *ipc) {
     ipc->texture_create_ret.texture = texture;
     if (command->need_mapping) {
         uint32_t *texture_map = (uint32_t *)(VIDEO_MAP_TOP + ((char *)texture->buf - USER_HEAP_TOP));
-        if ((res = sys_map_region(0, texture->buf, source, texture_map, sizeof(uint32_t) * texture->width * texture->height, PROT_RW))) {
+        size_t map_bytes = ROUNDUP(tex_bytes, PAGE_SIZE);
+        if ((res = sys_map_region(0, texture->buf, source, texture_map, map_bytes, PROT_RW))) {
             if (debug) cprintf("Bad sys map %d\n", res);
             free(texture->buf);
             free(texture);
@@ -95,7 +97,9 @@ command_texture_destroy(envid_t source, union Vgaipc *ipc) {
     int res;
     struct Texture *texture = ipc->texture_destroy.texture;
     if (texture->mapped_user_buf) {
-        if ((res = sys_unmap_region(source, texture->mapped_user_buf, sizeof(uint32_t) * texture->height * texture->width))) {
+        size_t tex_bytes = sizeof(uint32_t) * texture->width * texture->height;
+        size_t map_bytes = ROUNDUP(tex_bytes, PAGE_SIZE);
+        if ((res = sys_unmap_region(source, texture->mapped_user_buf, map_bytes))) {
             return res;
         }
     }
@@ -178,7 +182,7 @@ vshandler handlers[] = {
         [VGAREQ_RENDERER_CREATE] = command_renderer_create,
         [VGAREQ_RENDERER_DESTROY] = command_renderer_destroy,
         [VGAREQ_TEXTURE_CREATE] = command_texture_create,
-        [VGAREQ_TEXTURE_DESTROY] = command_texture_copy,
+        [VGAREQ_TEXTURE_DESTROY] = command_texture_destroy,
         [VGAREQ_TEXTURE_UPDATE] = command_texture_update,
         [VGAREQ_TEXTURE_COPY] = command_texture_copy,
         [VGAREQ_DISPLAY] = command_display,

@@ -9,6 +9,21 @@ typedef uintptr_t physaddr_t;
 typedef ptrdiff_t ssize_t;
 typedef int32_t off_t;
 
+// JOS userland: provide common integer limit macros (used by DOOM port, etc.).
+// Keep them guarded to avoid macro redefinition warnings if other headers define them.
+#ifndef INT_MAX
+#define INT_MAX 2147483647
+#endif
+#ifndef INT_MIN
+#define INT_MIN (-2147483647 - 1)
+#endif
+#ifndef SHRT_MAX
+#define SHRT_MAX 32767
+#endif
+#ifndef SHRT_MIN
+#define SHRT_MIN (-32768)
+#endif
+
 /* Efficient min and max operations */
 #ifndef MIN
 #define MIN(_a, _b) ({      \

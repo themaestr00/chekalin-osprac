@@ -314,6 +314,7 @@ include user/Makefrag
 include pci/Makefrag
 include fs/Makefrag
 include bga/Makefrag
+include doom_jos_edition/Makefrag
 endif
 
 QEMUOPTS = -hda fat:rw:$(JOS_ESP) -serial mon:stdio -gdb tcp::$(GDBPORT)

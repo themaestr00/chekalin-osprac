@@ -113,6 +113,102 @@ strfind(const char *str, int ch) {
     return (char *)str;
 }
 
+// New string functions for DOOM:
+
+// Returns a lower letter
+unsigned char 
+tolower(unsigned char ch) {
+    if (ch >= 'A' && ch <= 'Z')
+        ch = 'a' + (ch - 'A');
+    return ch;
+}
+
+// Returns an upper letter
+unsigned char 
+toupper(unsigned char ch) {
+    if (ch >= 'a' && ch <= 'z')
+        ch = 'A' + (ch - 'a');
+    return ch;
+}
+
+// Determines if a particular character represents a space character
+int 
+isspace(int c) {
+    return (c == ' ') || (c == '\t') || (c == '\n') || (c == '\v') || (c == '\f') || (c == '\r');
+}
+
+// Case-insensitive string compare
+int 
+strcasecmp(const char *p, const char *q) {
+    while (*p && tolower(*p) == tolower(*q)) p++, q++;
+    return (int)(tolower((unsigned char)*p) - tolower((unsigned char)*q));
+}
+
+// Case-insensitive string compare with length n
+int
+strncasecmp(const char *p, const char *q, size_t n) {
+    while (n && *p && tolower(*p) == tolower(*q)) n--, p++, q++;
+
+    if (!n) return 0;
+
+    return (int)(tolower((unsigned char)*p) - tolower((unsigned char)*q));
+}
+
+// Find last occurrence of character in string.
+char *
+strrchr(const char *s, int c) {
+    const char *last = NULL;
+    unsigned char uc = (unsigned char)c;
+    for (; *s; s++) {
+        if ((unsigned char)*s == uc) {
+            last = s;
+        }
+    }
+    // If c is '\0', return pointer to string terminator.
+    if (uc == 0) {
+        return (char *)s;
+    }
+    return (char *)last;
+}
+
+// Find substring.
+const char *
+strstr(const char *s1, const char *s2) {
+    const char *s1_ptr = NULL, *s2_ptr = NULL;
+
+    if (s1 == NULL || s2 == NULL)
+        return NULL;
+
+    while (*s1) {
+        if (*s1 == *s2) {
+
+            s2_ptr = s2;
+            s1_ptr = s1;
+
+            while (*s2_ptr && *s1_ptr) {
+                if (*s2_ptr != *s1_ptr) break;
+                ++s1_ptr;
+                ++s2_ptr;
+            }
+
+            if (!(*s2_ptr))
+                return s1;
+        }
+        ++s1;
+    }
+    return NULL;
+}
+
+int
+atoi(char const *c) {
+    return strtol(c, 0, 0);
+}
+
+int
+abs(int n) {
+    return n > 0 ? n : -n;
+}
+
 
 #if ASM
 void *

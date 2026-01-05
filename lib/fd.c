@@ -239,6 +239,43 @@ seek(int fdnum, off_t offset) {
 }
 
 int
+seekfromcur(int fdnum, off_t offset) {
+    int res;
+    off_t new_off;
+    struct Fd *fd;
+    struct Stat stat;
+
+    if ((res = fd_lookup(fdnum, &fd)) < 0) return res;
+    if ((res = fstat(fdnum, &stat)) < 0) return res;
+
+    if ((new_off = fd->fd_offset + offset) < stat.st_size) fd->fd_offset = new_off;
+    else fd->fd_offset = stat.st_size;
+
+    return 0;
+}
+
+int
+seektoend(int fdnum) {
+    int res;
+    struct Fd *fd;
+    struct Stat stat;
+
+    if ((res = fd_lookup(fdnum, &fd)) < 0) return res;
+    if ((res = fstat(fdnum, &stat)) < 0) return res;
+
+    fd->fd_offset = stat.st_size;
+    return 0;
+}
+
+int
+tell(int fdnum) {
+    int res;
+    struct Fd *fd;
+    if ((res = fd_lookup(fdnum, &fd)) < 0) return res;
+    return fd->fd_offset;
+}
+
+int
 ftruncate(int fdnum, off_t newsize) {
     int res;
 

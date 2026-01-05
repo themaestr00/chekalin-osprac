@@ -13,8 +13,19 @@ size_t strlcat(char *restrict dst, const char *restrict src, size_t maxlen);
 int strcmp(const char *s1, const char *s2);
 int strncmp(const char *s1, const char *s2, size_t size);
 char *strchr(const char *s, int c);
+char *strrchr(const char *s, int c);
 char *strfind(const char *s, int c);
 char *strdup(const char *s);
+
+// New string functions for DOOM:
+unsigned char tolower(unsigned char ch);
+unsigned char toupper(unsigned char ch);
+int isspace(int character);
+int strcasecmp(const char *s1, const char *s2);
+int strncasecmp(const char *s1, const char *s2, size_t size);
+const char *strstr(const char *s1, const char *s2);
+int atoi(char const *c);
+int abs(int n);
 
 void *memset(void *dst, int c, size_t len);
 void *memcpy(void *restrict dst, const void *restrict src, size_t len);
