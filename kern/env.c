@@ -203,7 +203,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
 #endif
 
     /* For now init trapframe with IF set */
-    env->env_tf.tf_rflags = FL_IF | ((type == ENV_TYPE_FS || type == ENV_TYPE_VGA || type == ENV_TYPE_PCI) ? FL_IOPL_3 : FL_IOPL_0);
+    env->env_tf.tf_rflags = FL_IF | ((type == ENV_TYPE_VGA || type == ENV_TYPE_PCI) ? FL_IOPL_3 : FL_IOPL_0);
 
     /* Clear the page fault handler until user installs one. */
     env->env_pgfault_upcall = 0;
@@ -454,7 +454,7 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
     if (status < 0) {
         panic("load_icode: %i", status);
     }
-    if (type == ENV_TYPE_FS || type == ENV_TYPE_PCI || type == ENV_TYPE_VGA) {
+    if (type == ENV_TYPE_PCI || type == ENV_TYPE_VGA) {
         env->env_tf.tf_rflags |= FL_IOPL_3;
     }
 }

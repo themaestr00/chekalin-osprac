@@ -63,7 +63,7 @@ bochs_vbe_init(uint16_t width, uint16_t height, uint16_t bpp) {
     cprintf("Bar size = %ld\n", bar_size);
     cprintf("Bar address = %lx\n", bar_addr);
 
-    int res = sys_map_physical_region(bar_addr, 0, (void *)VGA_FB_VADDR, bar_size, PROT_RW);
+    int res = sys_map_physical_region(bar_addr, 0, (void *)VGA_FB_VADDR, bar_size, PROT_RW | PROT_CD);
     cprintf("res = %d\n", res);
 
 #ifdef SANITIZE_USER_SHADOW_BASE

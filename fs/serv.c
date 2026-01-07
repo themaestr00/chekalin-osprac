@@ -342,8 +342,8 @@ umain(int argc, char **argv) {
     nvme_init();
 
     /* Check that we are able to do I/O */
-    outw(0x8A00, 0x8A00);
-    cprintf("FS can do I/O\n");
+    // outw(0x8A00, 0x8A00);
+    // cprintf("FS can do I/O\n");
 
     serve_init();
     fs_init();

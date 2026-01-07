@@ -135,9 +135,9 @@ command_display(envid_t source, union Vgaipc *ipc) {
     switch (window->mode) {
     case VGA_WINDOW_MODE_FULLSCREEN:
         for (uint32_t y = 0; y < vga_instance->height; ++y) {
-            uint32_t new_y = (uint32_t)((double)y / vga_instance->height * window->height);
+            uint32_t new_y = (uint64_t)((y *  window->height) / vga_instance->height);
             for (uint32_t x = 0; x < vga_instance->width; ++x) {
-                uint32_t new_x = (uint32_t)((double)x / vga_instance->width * window->width);
+                uint32_t new_x = (uint64_t)((x * window->width) / vga_instance->width);
                 vga_instance->fb[y * vga_instance->width + x] = renderer->back_buffer[new_y * window->width + new_x];
             }
         }
